@@ -29,6 +29,7 @@
     <include file="db/changelog/changes/004-create-counterparties.xml"/>
     <include file="db/changelog/changes/005-create-settlements.xml"/>
     <include file="db/changelog/changes/006-create-recon-breaks.xml"/>
+    <include file="db/changelog/changes/007-fks-and-indexes.xml"/>
 
     <!--
         As you complete Day-1 tickets I003..I008 (REVIEW + EXTEND the
