@@ -1,60 +1,47 @@
-# TradeFlow — Entity Relationship Diagram (TICKET-I002)
-
-> Replace this file with your team's ER diagram.
-
-## Skeleton (replace with your real diagram)
-
 ```mermaid
 erDiagram
-    COUNTERPARTIES ||--o{ TRADES : "originates"
-    INSTRUMENTS    ||--o{ TRADES : "references"
-    TRADES         ||--o{ RECON_RESULTS : "produces"
-    TRADES         ||--o{ AUDIT_LOG : "is audited by"
+    Trade {
+        BIGINT id PK "Primary Key, Auto-increment"
+        VARCHAR tradeRef UK "Unique, Not Null"
+        DECIMAL quantity "Not Null"
+        DECIMAL price "Not Null"
+        DATE tradeDate "Not Null"
+        BIGINT instrumentId FK "Foreign Key to Instrument"
+        BIGINT counterpartyId FK "Foreign Key to Counterparty"
+        VARCHAR status "Not Null, Default PENDING"
+    }
 
-    COUNTERPARTIES {
-        BIGINT id PK
-        VARCHAR name
-        CHAR(20) lei_code UK
-        VARCHAR region
+    Instrument {
+        BIGINT id PK "Primary Key, Auto-increment"
+        VARCHAR name UK "Unique, Not Null"
+        TEXT description
     }
-    INSTRUMENTS {
-        BIGINT id PK
-        VARCHAR symbol UK
-        VARCHAR name
-        VARCHAR asset_class
-        CHAR(3) currency
+
+    Counterparty {
+        BIGINT id PK "Primary Key, Auto-increment"
+        VARCHAR name UK "Unique, Not Null"
+        VARCHAR address
     }
-    TRADES {
-        BIGINT id PK
-        VARCHAR trade_ref UK
-        BIGINT instrument_id FK
-        BIGINT counterparty_id FK
-        NUMERIC quantity
-        NUMERIC price
-        DATE trade_date
-        VARCHAR status
+
+    Settlement {
+        BIGINT id PK "Primary Key, Auto-increment"
+        BIGINT tradeId FK "Foreign Key to Trade"
+        DATE settlementDate "Not Null"
+        DECIMAL amount "Not Null"
+        VARCHAR status "Not Null"
     }
-    RECON_RESULTS {
-        BIGINT id PK
-        BIGINT trade_id FK
-        VARCHAR status
-        VARCHAR discrepancy_type
-        TIMESTAMPTZ resolved_at
+
+    Recon_Breaks {
+        BIGINT id PK "Primary Key, Auto-increment"
+        BIGINT settlementId FK "Foreign Key to Settlement"
+        VARCHAR breakType "Not Null"
+        TEXT description
+        DATE breakDate "Not Null"
+        BOOLEAN resolved "Not Null, Default FALSE"
     }
-    AUDIT_LOG {
-        BIGINT id PK
-        VARCHAR entity
-        BIGINT entity_id
-        VARCHAR action
-        JSONB old_value
-        JSONB new_value
-        TIMESTAMPTZ "timestamp"
-    }
+
+    Trade ||--|{ Instrument : "has one"
+    Trade ||--|{ Counterparty : "has one"
+    Trade ||--o{ Settlement : "has many"
+    Settlement ||--o{ Recon_Breaks : "has many"
 ```
-
-## TODO(TICKET-I002)
-
-- [ ] Replace the skeleton above with your team's accurate diagram.
-- [ ] Annotate cardinalities (1:N, N:N).
-- [ ] Mark optional vs mandatory fields.
-- [ ] Link this from the project root `README.md`.
