@@ -34,6 +34,7 @@
     <include file="db/changelog/changes/009-seed-counterparties.xml"/>
     <include file="db/changelog/changes/010-seed-trades.xml"/>
     <include file="db/changelog/changes/011-create-views.xml"/>
+    <include file="db/changelog/changes/012-create-audit-log.xml"/>
 
     <!--
         As you complete Day-1 tickets I003..I008 (REVIEW + EXTEND the
