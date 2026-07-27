@@ -1,7 +1,11 @@
 package com.dbtraining.tradeflow;
 
+import com.dbtraining.tradeflow.model.Trade;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * ============================================================================
@@ -29,7 +33,28 @@ public class TradeflowApplication {
 
     public static void main(String[] args) {
         printBanner();
+        verifyTradeEqualsContract();
         SpringApplication.run(TradeflowApplication.class, args);
+    }
+
+    // TICKET-I025: manual assertion proving Trade.equals()/hashCode() use
+    // only tradeRef — two trades sharing a tradeRef but differing in
+    // quantity/price must still be .equals() and share a hashCode().
+    private static void verifyTradeEqualsContract() {
+        Trade a = Trade.builder()
+                .tradeRef("TRD-1")
+                .instrumentId(1L).counterpartyId(1L)
+                .quantity(new BigDecimal("100")).price(new BigDecimal("50.00"))
+                .tradeDate(LocalDate.now())
+                .build();
+        Trade b = Trade.builder()
+                .tradeRef("TRD-1")
+                .instrumentId(1L).counterpartyId(1L)
+                .quantity(new BigDecimal("200")).price(new BigDecimal("99.99"))
+                .tradeDate(LocalDate.now())
+                .build();
+        if (!a.equals(b)) throw new AssertionError("Trade.equals() broken");
+        if (a.hashCode() != b.hashCode()) throw new AssertionError("Trade.hashCode() broken");
     }
 
     private static void printBanner() {

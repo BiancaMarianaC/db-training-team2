@@ -74,10 +74,17 @@ public class Trade {
     public TradeStatus getStatus()      { return status; }
     public Instant getCreatedAt()       { return createdAt; }
 
-    // ------------------------------------------------------------------------
-    // TODO(TICKET-I025): equals() + hashCode() on tradeRef.
-    //   HINT: IntelliJ generate → keep only `tradeRef`.
-    // ------------------------------------------------------------------------
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Trade other)) return false;
+        return Objects.equals(tradeRef, other.tradeRef);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tradeRef);
+    }
 
     @Override
     public String toString() {
