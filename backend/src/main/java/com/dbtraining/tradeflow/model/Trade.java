@@ -36,36 +36,54 @@ import java.time.LocalDate;
  */
 public class Trade {
 
-    // ------------------------------------------------------------------------
-    // TODO(TICKET-I017): define private final fields:
-    //   private final String tradeRef;
-    //   private final Long instrumentId;          // or Instrument instrument (Day 5)
-    //   private final Long counterpartyId;        // or Counterparty (Day 5)
-    //   private final BigDecimal quantity;
-    //   private final BigDecimal price;
-    //   private final LocalDate tradeDate;
-    //   private final TradeStatus status;
-    //   private final Instant createdAt;
-    // ------------------------------------------------------------------------
+    private final String tradeRef;
+    private final Long instrumentId;
+    private final Long counterpartyId;
+    private final BigDecimal quantity;
+    private final BigDecimal price;
+    private final LocalDate tradeDate;
+    private final TradeStatus status;
+    private final Instant createdAt;
 
-    // ------------------------------------------------------------------------
-    // TODO(TICKET-I017 / TICKET-I056): private constructor used by Builder
-    //   + protected no-arg constructor for JPA (Day 5).
-    // ------------------------------------------------------------------------
+    private Trade(String tradeRef, Long instrumentId, Long counterpartyId,
+                  BigDecimal quantity, BigDecimal price, LocalDate tradeDate,
+                  TradeStatus status, Instant createdAt) {
+        this.tradeRef = tradeRef;
+        this.instrumentId = instrumentId;
+        this.counterpartyId = counterpartyId;
+        this.quantity = quantity;
+        this.price = price;
+        this.tradeDate = tradeDate;
+        this.status = status;
+        this.createdAt = createdAt;
+    }
 
-    // ------------------------------------------------------------------------
-    // TODO(TICKET-I017): public getters (no setters).
-    // ------------------------------------------------------------------------
+    // Protected no-arg constructor — satisfies JPA/Hibernate (TICKET-I056).
+    // The Builder (TICKET-I018) remains the only public construction path.
+    protected Trade() {
+        this(null, null, null, null, null, null, null, null);
+    }
+
+    public String getTradeRef()         { return tradeRef; }
+    public Long getInstrumentId()       { return instrumentId; }
+    public Long getCounterpartyId()     { return counterpartyId; }
+    public BigDecimal getQuantity()     { return quantity; }
+    public BigDecimal getPrice()        { return price; }
+    public LocalDate getTradeDate()     { return tradeDate; }
+    public TradeStatus getStatus()      { return status; }
+    public Instant getCreatedAt()       { return createdAt; }
 
     // ------------------------------------------------------------------------
     // TODO(TICKET-I025): equals() + hashCode() on tradeRef.
     //   HINT: IntelliJ generate → keep only `tradeRef`.
     // ------------------------------------------------------------------------
 
-    // ------------------------------------------------------------------------
-    // TODO(TICKET-I017): toString() formatted for the console list (TICKET-I026)
-    //   e.g. "Trade[TRD-1 | SAP.DE | 1000 @ 152.40 EUR | 2026-03-12 | MATCHED]"
-    // ------------------------------------------------------------------------
+    @Override
+    public String toString() {
+        return "Trade[" + tradeRef + " | instrument=" + instrumentId
+                + " | " + quantity + " @ " + price
+                + " | " + tradeDate + " | " + status + "]";
+    }
 
     // ========================================================================
     // TODO(TICKET-I018): fluent Builder.
