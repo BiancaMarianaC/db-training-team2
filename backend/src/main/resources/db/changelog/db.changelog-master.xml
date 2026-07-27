@@ -37,16 +37,11 @@
     <include file="db/changelog/changes/012-create-audit-log.xml"/>
 
     <!--
-        As you complete Day-1 tickets I003..I008 (REVIEW + EXTEND the
-        bootstrap), add new changeset files here. Naming convention:
-
-            002-<your-change>.xml   author=<your-handle>
-
-        Example additions you might write:
-          - Add CHECK constraints on trades.status and trades.quantity > 0
-          - Add CHECK constraint on counterparties.region
-          - Add an audit_log immutability trigger
-          - Add a generated column trades.notional_amount
+        TICKET-I010 verified: `./mvnw spring-boot:run` boots clean against
+        the dev (H2) profile. All 12 changesets above run EXECUTED in
+        DATABASECHANGELOG, in order. Tables present in /h2-console: TRADES,
+        INSTRUMENTS, COUNTERPARTIES, SETTLEMENTS, RECON_BREAKS, AUDIT_LOG,
+        plus views V_OPEN_BREAKS and V_SETTLEMENT_LAG.
     -->
 
 </databaseChangeLog>
