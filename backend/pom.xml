@@ -80,6 +80,10 @@
         </dependency>
 
         <!-- Day 2/4 — Liquibase -->
+        <!-- TICKET-I009: wired here + application.yml (spring.liquibase.change-log,
+             no classpath: prefix) + spring.jpa.hibernate.ddl-auto=none so Liquibase,
+             not Hibernate, owns the schema. Boot 3 auto-configures from this
+             dependency alone — no spring-boot-starter-liquibase needed. -->
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
