@@ -53,7 +53,14 @@ public class ReconciliationService {
         Objects.requireNonNull(external, "external list required");
 
         Map<String, BaseTrade> externalByRef = external.stream()
-                .collect(Collectors.toMap(BaseTrade::getTradeRef, trade -> trade, (first, duplicate) -> first));
+                .collect(Collectors.toMap(
+                    BaseTrade::getTradeRef, trade -> trade,
+                    (first, duplicate) -> {
+                        throw new IllegalArgumentException(
+                                "Duplicate external tradeRef: " + first.getTradeRef()
+                        );
+                    }
+                ));
 
         List<BaseTrade> matched = new ArrayList<>();
         List<Discrepancy> discrepancies = new ArrayList<>();
