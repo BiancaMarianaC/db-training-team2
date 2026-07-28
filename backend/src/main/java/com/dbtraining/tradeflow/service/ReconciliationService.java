@@ -85,7 +85,13 @@ public class ReconciliationService {
     }
 
     private List<DiscrepancyType> classify(BaseTrade internalTrade, BaseTrade externalTrade) {
-        // TICKET-I035 adds price, quantity, and date comparison here.
-        return List.of();
+        List<DiscrepancyType> diffs = new ArrayList<>(2);
+        if (internalTrade.getPrice().compareTo(externalTrade.getPrice()) != 0)
+            diffs.add(DiscrepancyType.PRICE_MISMATCH);
+        if (internalTrade.getQuantity().compareTo(externalTrade.getQuantity()) != 0)
+            diffs.add(DiscrepancyType.QUANTITY_MISMATCH);
+        if (!Objects.equals(internalTrade.getTradeDate(), externalTrade.getTradeDate()))
+            diffs.add(DiscrepancyType.DATE_MISMATCH);
+        return diffs;
     }
 }
