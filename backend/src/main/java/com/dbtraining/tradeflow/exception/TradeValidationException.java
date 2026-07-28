@@ -27,9 +27,26 @@ public class TradeValidationException extends Exception {
         REFERENCE_NOT_FOUND
     }
 
-    // TODO(TICKET-I032): private final Code code; getCode(); ctor(Code, String).
+    private final Code code;
 
+    /** Legacy single-arg constructor with message only.
+      * It that defaults to INVALID_VALUE for exception code */
     public TradeValidationException(String message) {
         super(message);
+        this.code = Code.INVALID_VALUE;
+    }
+
+    public TradeValidationException(Code code, String message) {
+        super(message);
+        this.code = code;
+    }
+
+    public TradeValidationException(Code code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = code;
+    }
+
+    public Code getCode() {
+        return code;
     }
 }
