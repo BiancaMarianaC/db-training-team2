@@ -1,9 +1,16 @@
 package com.dbtraining.tradeflow.service;
 
-import com.dbtraining.tradeflow.dto.ReconSummary;
+import com.dbtraining.tradeflow.dto.Discrepancy;
+import com.dbtraining.tradeflow.dto.ReconReport;
 import com.dbtraining.tradeflow.model.BaseTrade;
+import com.dbtraining.tradeflow.model.DiscrepancyType;
+import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * ============================================================================
@@ -32,9 +39,8 @@ import java.util.List;
  *  - Keep this class < 200 lines. Pull helpers into private methods.
  * ============================================================================
  */
+@Service
 public class ReconciliationService {
-
-    // TODO(TICKET-I034): constructor / dependencies (Day 5 will add repos here).
 
     /**
      * TODO(TICKET-I034 + TICKET-I035):
@@ -42,27 +48,44 @@ public class ReconciliationService {
      *     - matched: trades present + identical on both sides
      *     - discrepancies: list of (tradeRef, List<DiscrepancyType>) entries
      */
-    public Object matchTrades(List<BaseTrade> internal, List<BaseTrade> external) {
-        // HINT pseudocode:
-        //   var externalByRef = external.stream().collect(toMap(BaseTrade::tradeRef, t->t));
-        //   var matched = new ArrayList<BaseTrade>();
-        //   var discrepancies = new ArrayList<Discrepancy>();
-        //   for (BaseTrade in : internal) {
-        //       var out = externalByRef.remove(in.tradeRef());
-        //       if (out == null) { discrepancies.add(new Discrepancy(in.tradeRef(), List.of(MISSING_TRADE))); continue; }
-        //       var diffs = compare(in, out);
-        //       if (diffs.isEmpty()) matched.add(in); else discrepancies.add(new Discrepancy(in.tradeRef(), diffs));
-        //   }
-        //   // anything still in externalByRef is also a MISSING_TRADE (this side)
-        //   ...
-        throw new UnsupportedOperationException("TICKET-I034: implement matchTrades");
+    public ReconReport matchTrades(List<BaseTrade> internal, List<BaseTrade> external) {
+        Objects.requireNonNull(internal, "internal list required");
+        Objects.requireNonNull(external, "external list required");
+
+        Map<String, BaseTrade> externalByRef = external.stream()
+                .collect(Collectors.toMap(BaseTrade::getTradeRef, trade -> trade, (first, duplicate) -> first));
+
+        List<BaseTrade> matched = new ArrayList<>();
+        List<Discrepancy> discrepancies = new ArrayList<>();
+
+        for (BaseTrade internalTrade : internal) {
+            BaseTrade externalTrade = externalByRef.remove(internalTrade.getTradeRef());
+            if (externalTrade == null) {
+                discrepancies.add(new Discrepancy(
+                        internalTrade.getTradeRef(),
+                        List.of(DiscrepancyType.MISSING_TRADE)));
+                continue;
+            }
+
+            List<DiscrepancyType> differences = classify(internalTrade, externalTrade);
+            if (differences.isEmpty()) {
+                matched.add(internalTrade);
+            } else {
+                discrepancies.add(new Discrepancy(internalTrade.getTradeRef(), differences));
+            }
+        }
+
+        for (BaseTrade externalOnlyTrade : externalByRef.values()) {
+            discrepancies.add(new Discrepancy(
+                    externalOnlyTrade.getTradeRef(),
+                    List.of(DiscrepancyType.MISSING_TRADE)));
+        }
+
+        return new ReconReport(internal.size(), external.size(), matched, discrepancies);
     }
 
-    /**
-     * TODO(TICKET-I036):
-     *   Reduce a ReconReport into a ReconSummary suitable for the API + UI.
-     */
-    public ReconSummary generateReport(Object reconReport) {
-        throw new UnsupportedOperationException("TICKET-I036: implement generateReport");
+    private List<DiscrepancyType> classify(BaseTrade internalTrade, BaseTrade externalTrade) {
+        // TICKET-I035 adds price, quantity, and date comparison here.
+        return List.of();
     }
 }

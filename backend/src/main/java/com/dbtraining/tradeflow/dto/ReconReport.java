@@ -1,0 +1,14 @@
+package com.dbtraining.tradeflow.dto;
+
+import com.dbtraining.tradeflow.model.BaseTrade;
+
+import java.util.List;
+
+/** Detailed result of matching an internal trade feed against an external feed. */
+public record ReconReport(
+        int totalInternal,
+        int totalExternal,
+        List<BaseTrade> matched,
+        List<Discrepancy> discrepancies
+) {
+}
