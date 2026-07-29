@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * ============================================================================
@@ -58,14 +59,17 @@ public class TradeService {
     }
 
     /**
-     * TODO(TICKET-I042):
-     *   Streams pipeline that:
-     *     - filters trades by status == MATCHED
-     *     - groups by counterpartyId
-     *     - sums quantity * price into BigDecimal
+     * Sum notional (quantity * price) per counterparty across MATCHED trades only.
      */
     public Map<Long, BigDecimal> sumByCounterparty() {
-        throw new UnsupportedOperationException("TICKET-I042");
+        return tradesByRef.values().stream()
+                .filter(t -> t.getStatus() == TradeStatus.MATCHED)
+                .collect(Collectors.groupingBy(
+                        BaseTrade::getCounterpartyId,
+                        Collectors.reducing(
+                                BigDecimal.ZERO,
+                                BaseTrade::getNotional,
+                                BigDecimal::add)));
     }
 
     /**
