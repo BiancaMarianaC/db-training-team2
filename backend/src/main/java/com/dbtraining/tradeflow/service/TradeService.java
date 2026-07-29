@@ -38,7 +38,7 @@ import java.util.Map;
 @Service
 public class TradeService {
 
-    // TODO(TICKET-I041): in-memory store as HashMap keyed by tradeRef.
+    // TICKET-I041: in-memory store as HashMap keyed by tradeRef.
     private final Map<String, BaseTrade> tradesByRef = new HashMap<>();
 
     // TODO(TICKET-I062) [Day 5]: replace the Map with TradeRepository injection:
@@ -46,13 +46,15 @@ public class TradeService {
     //   public TradeService(TradeRepository tradeRepository) { ... }
 
     public Collection<BaseTrade> getAllTrades() {
-        // TODO(TICKET-I041): return an unmodifiable view of the values.
         return Collections.unmodifiableCollection(tradesByRef.values());
     }
 
     public void addTrade(BaseTrade trade) {
-        // TODO(TICKET-I041): put in the map keyed by tradeRef. Reject duplicates.
-        throw new UnsupportedOperationException("TICKET-I041");
+        String tradeRef = trade.getTradeRef();
+        if (tradesByRef.containsKey(tradeRef)) {
+            throw new IllegalStateException("Duplicate tradeRef: " + tradeRef);
+        }
+        tradesByRef.put(tradeRef, trade);
     }
 
     /**
