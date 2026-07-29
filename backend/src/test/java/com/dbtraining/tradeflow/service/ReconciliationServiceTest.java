@@ -92,10 +92,30 @@ class ReconciliationServiceTest {
         assertThat(report.matched()).hasSize(1);
     }
 
-    // TODO(TICKET-I050): test matchTrades_missingExternal_flagsMissingTrade.
     @Test
     void matchTrades_missingExternal_flagsMissingTrade() {
-        fail("TICKET-I050: implement test");
+        List<BaseTrade> internal = List.of(equity("TRD-INT-ONLY"));
+        List<BaseTrade> external = List.of();
+
+        ReconReport report = service.matchTrades(internal, external);
+
+        assertThat(report.discrepancies()).hasSize(1);
+        assertThat(report.discrepancies().get(0).tradeRef()).isEqualTo("TRD-INT-ONLY");
+        assertThat(report.discrepancies().get(0).types())
+                .containsExactly(DiscrepancyType.MISSING_TRADE);
+    }
+
+    @Test
+    void matchTrades_missingInternal_flagsMissingTrade() {
+        List<BaseTrade> internal = List.of();
+        List<BaseTrade> external = List.of(equity("TRD-EXT-ONLY"));
+
+        ReconReport report = service.matchTrades(internal, external);
+
+        assertThat(report.discrepancies()).hasSize(1);
+        assertThat(report.discrepancies().get(0).tradeRef()).isEqualTo("TRD-EXT-ONLY");
+        assertThat(report.discrepancies().get(0).types())
+                .containsExactly(DiscrepancyType.MISSING_TRADE);
     }
 
     // TODO(TICKET-I051): test with @Mock TradeDAO + verify(...).findAll() called.
