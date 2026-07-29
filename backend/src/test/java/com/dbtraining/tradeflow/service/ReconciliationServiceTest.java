@@ -62,10 +62,34 @@ class ReconciliationServiceTest {
         assertThat(report.totalExternal()).isEqualTo(3);
     }
 
-    // TODO(TICKET-I049): test matchTrades_priceMismatch_flagsDiscrepancy.
     @Test
     void matchTrades_priceMismatch_flagsDiscrepancy() {
-        fail("TICKET-I049: implement test");
+        BaseTrade in  = equityWith("TRD-001", new BigDecimal("100"),
+                                new BigDecimal("245.50"), LocalDate.of(2026, 3, 1));
+        BaseTrade out = equityWith("TRD-001", new BigDecimal("100"),
+                                new BigDecimal("249.99"), LocalDate.of(2026, 3, 1));
+
+        ReconReport report = service.matchTrades(List.of(in), List.of(out));
+
+        assertThat(report.matched()).isEmpty();
+        assertThat(report.discrepancies()).hasSize(1);
+        var discrepancy = report.discrepancies().get(0);
+        assertThat(discrepancy.tradeRef()).isEqualTo("TRD-001");
+        assertThat(discrepancy.types()).containsExactly(DiscrepancyType.PRICE_MISMATCH);
+    }
+
+    /** Scale-difference regression test: 245.5 vs 245.50 are equal by compareTo(). */
+    @Test
+    void matchTrades_priceScaleDifference_notFlagged() {
+        BaseTrade in  = equityWith("TRD-002", new BigDecimal("100"),
+                                new BigDecimal("245.5"),  LocalDate.of(2026, 3, 1));
+        BaseTrade out = equityWith("TRD-002", new BigDecimal("100"),
+                                new BigDecimal("245.50"), LocalDate.of(2026, 3, 1));
+
+        ReconReport report = service.matchTrades(List.of(in), List.of(out));
+
+        assertThat(report.discrepancies()).isEmpty();
+        assertThat(report.matched()).hasSize(1);
     }
 
     // TODO(TICKET-I050): test matchTrades_missingExternal_flagsMissingTrade.
@@ -93,6 +117,14 @@ class ReconciliationServiceTest {
                 .tradeDate(LocalDate.of(2026, 3, 1))
                 .status(TradeStatus.MATCHED)
                 .exchange("XETRA").lotSize(100)
+                .build();
+    }
+
+    private static BaseTrade equityWith(String tradeRef, BigDecimal qty, BigDecimal price, LocalDate date) {
+        return EquityTrade.builder()
+                .tradeRef(tradeRef).instrumentId(1L).counterpartyId(1L)
+                .quantity(qty).price(price).tradeDate(date)
+                .status(TradeStatus.MATCHED).exchange("XETRA").lotSize(100)
                 .build();
     }
 }
