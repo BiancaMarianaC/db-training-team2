@@ -1,5 +1,8 @@
 package com.dbtraining.tradeflow.config;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import javax.sql.DataSource;
 
 /**
@@ -28,9 +31,33 @@ import javax.sql.DataSource;
  *    }
  * ============================================================================
  */
-public class DatabaseConfig {
+public final class DatabaseConfig {
+
+    private static volatile DataSource instance;
+
+    private DatabaseConfig() {
+    }
 
     public static DataSource dataSource() {
-        throw new UnsupportedOperationException("TICKET-I044: configure HikariCP");
+        DataSource local = instance;
+        if (local == null) {
+            synchronized (DatabaseConfig.class) {
+                local = instance;
+                if (local == null) {
+                    HikariConfig config = new HikariConfig();
+                    config.setJdbcUrl(System.getenv().getOrDefault(
+                            "JDBC_URL", "jdbc:postgresql://localhost:5432/tradeflow"));
+                    config.setUsername(System.getenv().getOrDefault(
+                            "POSTGRES_USER", "tradeflow_user"));
+                    config.setPassword(System.getenv().getOrDefault(
+                            "POSTGRES_PASSWORD", "changeme"));
+                    config.setMaximumPoolSize(10);
+                    config.setConnectionTimeout(5_000);
+                    config.setPoolName("tradeflow-jdbc");
+                    instance = local = new HikariDataSource(config);
+                }
+            }
+        }
+        return local;
     }
 }
