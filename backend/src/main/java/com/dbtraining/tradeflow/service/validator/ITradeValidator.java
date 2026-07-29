@@ -16,10 +16,5 @@ import com.dbtraining.tradeflow.model.BaseTrade;
  * ============================================================================
  */
 public interface ITradeValidator {
-
-    /**
-     * @throws TradeValidationException with a Code explaining why the trade
-     *         was rejected.
-     */
     void validate(BaseTrade trade) throws TradeValidationException;
 }
