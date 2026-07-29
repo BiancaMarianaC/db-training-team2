@@ -4,9 +4,11 @@ import com.dbtraining.tradeflow.exception.TradeValidationException;
 import com.dbtraining.tradeflow.exception.TradeValidationException.Code;
 import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.FXTrade;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
+@Component
 public class FXTradeValidator implements ITradeValidator {
 
     @Override

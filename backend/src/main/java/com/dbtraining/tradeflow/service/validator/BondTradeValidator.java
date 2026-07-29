@@ -7,6 +7,7 @@ import com.dbtraining.tradeflow.model.BondTrade;
 
 import java.math.BigDecimal;
 
+@Component
 public class BondTradeValidator implements ITradeValidator {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
