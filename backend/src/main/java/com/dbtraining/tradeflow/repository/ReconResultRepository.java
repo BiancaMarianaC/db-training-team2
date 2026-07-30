@@ -1,5 +1,13 @@
 package com.dbtraining.tradeflow.repository;
 
+import com.dbtraining.tradeflow.model.ReconResult;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
 /**
  * ============================================================================
  * ReconResultRepository — TICKET-I061 (Day 5)
@@ -21,6 +29,28 @@ package com.dbtraining.tradeflow.repository;
  *    List<ReconResult> findUnresolvedByCounterparty(@Param("cp") Long counterpartyId);
  * ============================================================================
  */
-public interface ReconResultRepository {
-    // TODO(TICKET-I061): see comments above.
+@Repository
+public interface ReconResultRepository extends JpaRepository<ReconResult, Long> {
+
+    List<ReconResult> findByStatus(ReconResult.Status status);
+
+    long countByStatus(ReconResult.Status status);
+
+    List<ReconResult> findByTradeId(Long tradeId);
+
+    /* 
+     * The query uses t.counterpartyId because the current team Trade entity stores 
+     * the counterparty as a Long field rather than a Counterparty relationship. 
+     * If the Trade mapping is later changed to @ManyToOne, 
+     * this query must be updated to t.counterparty.id.
+    */
+    @Query("""
+       select r from ReconResult r
+         join r.trade t
+       where r.status = com.dbtraining.tradeflow.model.ReconResult$Status.OPEN
+         and t.counterpartyId = :counterpartyId
+       """)
+    List<ReconResult> findUnresolvedByCounterparty(
+            @Param("counterpartyId") Long counterpartyId
+    );
 }

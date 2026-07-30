@@ -3,7 +3,6 @@ package com.dbtraining.tradeflow.service;
 import com.dbtraining.tradeflow.model.*;
 import com.dbtraining.tradeflow.dto.Discrepancy;
 import com.dbtraining.tradeflow.dto.ReconReport;
-import com.dbtraining.tradeflow.repository.ReconResultDAO;
 import com.dbtraining.tradeflow.repository.TradeDAO;
 
 
@@ -55,7 +54,9 @@ class ReconciliationServiceTest {
     // private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
     @Mock private TradeDAO tradeDAO;
-    @Mock private ReconResultDAO reconResultDAO;
+    /** ReconResultDAO was removed as part of TICKET-I061
+        as it was no longer used at that point */
+    // @Mock private ReconResultDAO reconResultDAO;
 
     // TODO: Re-enable mock injection once the tests from tickets I051 - I053 are fixed
     // @InjectMocks
@@ -139,8 +140,9 @@ class ReconciliationServiceTest {
     }
 
 
-    // TODO: Re-enable when production code provides a DAO 
+    // TODO: Re-enable if production code provides a DAO 
     // reconciliation method that calls TradeDAO.findAll().
+    /*
     @Test
     @Disabled("Blocked: ReconciliationService has no TradeDAO dependency or runForAll() method")
     void mockedTradeDAO_findAllCalledOnce() {
@@ -153,10 +155,11 @@ class ReconciliationServiceTest {
         verify(tradeDAO, times(1)).findAll();
         // Happy-path: no discrepancies persisted because everything matched.
         verifyNoInteractions(reconResultDAO);
-    }
+    } */
 
-    // TODO: Re-enable when runForAll() persists discrepancies
+    // TODO: Re-enable if runForAll() persists discrepancies
     // through ReconResultDAO.insert().
+    /*
     @Test
     @Disabled("Blocked: no production method currently calls ReconResultDAO.insert()")
     void runForAll_oneDiscrepancy_insertsOneReconResult() {
@@ -172,10 +175,11 @@ class ReconciliationServiceTest {
 
         assertThat(inserted.getDiscrepancyType())
                 .isEqualTo(DiscrepancyType.MISSING_TRADE);
-    }
+    } */
 
-    // TODO: Re-enable when runForAll() performs DAO-based reconciliation
+    // TODO: Re-enable if runForAll() performs DAO-based reconciliation
     // and only persists results when discrepancies are found.
+    /*
     @Test
     @Disabled(
         "Blocked: ReconciliationService has no runForAll() method that reads trades " +
@@ -189,7 +193,7 @@ class ReconciliationServiceTest {
         // service.runForAll();
 
         verify(reconResultDAO, never()).insert(any(ReconResult.class));
-    }
+    } */
 
     private static BaseTrade equity(String tradeRef) {
         return EquityTrade.builder()
