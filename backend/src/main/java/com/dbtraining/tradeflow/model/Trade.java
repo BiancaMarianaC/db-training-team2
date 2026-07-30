@@ -1,5 +1,14 @@
 package com.dbtraining.tradeflow.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,16 +43,45 @@ import java.util.Objects;
  * - For @ManyToOne on instrument/counterparty: use FetchType.LAZY to avoid
  *   accidental N+1 queries.
  * ============================================================================
+ * TICKET-I056 NOTE: instrumentId/counterpartyId stay plain @Column Long for
+ * now, NOT @ManyToOne — Instrument/Counterparty only become JPA entities in
+ * TICKET-I057, which isn't done yet. Mapping @ManyToOne to a non-@Entity
+ * class compiles but blows up at Hibernate startup. Upgrade to a real
+ * @ManyToOne once I057 lands.
+ * ============================================================================
  */
+@Entity
+@Table(name = "trades")
 public class Trade {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "trade_ref", nullable = false, unique = true, length = 30)
     private final String tradeRef;
+
+    @Column(name = "instrument_id", nullable = false)
     private final Long instrumentId;
+
+    @Column(name = "counterparty_id", nullable = false)
     private final Long counterpartyId;
+
+    @Column(name = "quantity", nullable = false, precision = 18, scale = 4)
     private final BigDecimal quantity;
+
+    @Column(name = "price", nullable = false, precision = 18, scale = 4)
     private final BigDecimal price;
+
+    @Column(name = "trade_date", nullable = false)
     private final LocalDate tradeDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     private final TradeStatus status;
+
+    @Column(name = "created_at", nullable = false)
     private final Instant createdAt;
 
     private Trade(String tradeRef, Long instrumentId, Long counterpartyId,
@@ -65,6 +103,7 @@ public class Trade {
         this(null, null, null, null, null, null, null, null);
     }
 
+    public Long getId()                 { return id; }
     public String getTradeRef()         { return tradeRef; }
     public Long getInstrumentId()       { return instrumentId; }
     public Long getCounterpartyId()     { return counterpartyId; }
