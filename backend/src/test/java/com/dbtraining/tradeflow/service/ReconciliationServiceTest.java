@@ -113,4 +113,13 @@ class ReconciliationServiceTest {
                 .status(TradeStatus.MATCHED)
                 .build();
     }
+
+    private static Trade sampleTrade(String ref) {
+        return Trade.builder()
+                .tradeRef(ref)
+                .quantity(new BigDecimal("100")).price(new BigDecimal("245.50"))
+                .tradeDate(LocalDate.of(2026, 3, 1))
+                .status(TradeStatus.MATCHED)
+                .build();
+    }
 }
