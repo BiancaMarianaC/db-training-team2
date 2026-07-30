@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,11 +74,13 @@ public class TradeService {
     }
 
     /**
-     * TODO(TICKET-I043):
-     *   Top N trades by notional value (quantity * price) descending.
+     * Top N trades by notional value (quantity * price), descending.
      */
     public List<BaseTrade> topNByValue(int n) {
-        throw new UnsupportedOperationException("TICKET-I043");
+        return tradesByRef.values().stream()
+                .sorted(Comparator.comparing(BaseTrade::getNotional).reversed())
+                .limit(n)
+                .collect(Collectors.toList());
     }
 
     /**
