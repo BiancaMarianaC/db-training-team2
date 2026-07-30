@@ -1,6 +1,7 @@
 package com.dbtraining.tradeflow.service;
 
 import com.dbtraining.tradeflow.model.ReconResult;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -28,6 +29,8 @@ import java.util.List;
  *    4. Helper: private String escape(String value) — handles comma, quote, newline.
  * ============================================================================
  */
+
+@Component
 public class ReconReportExporter {
 
     public void exportReconReport(List<ReconResult> results, Path target) throws IOException {

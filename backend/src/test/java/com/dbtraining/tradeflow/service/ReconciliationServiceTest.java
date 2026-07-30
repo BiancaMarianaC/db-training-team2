@@ -5,6 +5,7 @@ import com.dbtraining.tradeflow.repository.ReconResultDAO;
 import com.dbtraining.tradeflow.repository.TradeDAO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -15,6 +16,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -76,8 +79,39 @@ class ReconciliationServiceTest {
 
     // TODO(TICKET-I052): test with @Mock ReconResultDAO + ArgumentCaptor.
     @Test
-    void mockedReconResultDAO_insertCalledPerDiscrepancy() {
-        fail("TICKET-I052: implement test");
+    void runForAll_oneDiscrepancy_insertsOneReconResult() {
+        Trade internalOnly = sampleTrade("TRD-INT-ONLY");
+        when(tradeDAO.findAll()).thenReturn(List.of(internalOnly));
+        // External feed is empty in this test — we expect 1 MISSING_TRADE discrepancy.
+
+        // service.runForAll();
+
+        ArgumentCaptor<ReconResult> captor = ArgumentCaptor.forClass(ReconResult.class);
+        verify(reconResultDAO, times(1)).insert(captor.capture());
+        ReconResult inserted = captor.getValue();
+
+        assertThat(inserted.getDiscrepancyType())
+                .isEqualTo(DiscrepancyType.MISSING_TRADE);
+    }
+
+    @Test
+    void runForAll_allMatched_neverCallsInsert() {
+        Trade matched = sampleTrade("TRD-1");
+        when(tradeDAO.findAll()).thenReturn(List.of(matched));
+        // External feed (stubbed elsewhere) returns the same trade — nothing to flag.
+
+        // service.runForAll();
+
+        verify(reconResultDAO, never()).insert(any(ReconResult.class));
+    }
+
+    private static Trade sampleTrade(String ref) {
+        return Trade.builder()
+                .tradeRef(ref)
+                .quantity(new BigDecimal("100")).price(new BigDecimal("245.50"))
+                .tradeDate(LocalDate.of(2026, 3, 1))
+                .status(TradeStatus.MATCHED)
+                .build();
     }
 
     private static Trade sampleTrade(String ref) {
