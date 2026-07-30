@@ -1,5 +1,6 @@
 package com.dbtraining.tradeflow.model;
 
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -26,20 +27,42 @@ import java.util.Objects;
  *    - resolvedAt is @Column(nullable = true)
  * ============================================================================
  */
+@Entity
+@Table(name = "recon_breaks")
 public class ReconResult {
 
+    public enum Status { OPEN, RESOLVED, SUPPRESSED }
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long tradeId;
-    private String status;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "trade_id")
+    private Trade trade;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discrepancy_type", nullable = false, length = 30)
     private DiscrepancyType discrepancyType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Status status;
+
+    /** Some discrepancy in tickets about the table column being called created_at
+        and the corresponding Java field being called detectedAt, but it should not 
+        cause issues. Keeping this naming convention to avoid breaking other code */
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant detectedAt;
+
+    @Column(name = "resolved_at")
     private Instant resolvedAt;
 
-    ReconResult() {}
+    protected ReconResult() {}
 
     private ReconResult(Builder builder) {
-        this.tradeId = builder.tradeId;
-        this.status = builder.status != null ? builder.status : "OPEN";
+        this.trade = builder.trade;
+        this.status = builder.status != null ? builder.status : Status.OPEN;
         this.discrepancyType = builder.discrepancyType;
         this.detectedAt = builder.detectedAt != null ? builder.detectedAt : Instant.now();
         this.resolvedAt = builder.resolvedAt;
@@ -53,11 +76,11 @@ public class ReconResult {
         return id;
     }
 
-    public Long getTradeId() {
-        return tradeId;
+    public Trade getTrade() {
+        return trade;
     }
 
-    public String getStatus() {
+    public Status getStatus() {
         return status;
     }
 
@@ -74,37 +97,57 @@ public class ReconResult {
     }
 
     public void resolve() {
-        if ("RESOLVED".equals(status)) {
+        if (status == Status.RESOLVED) {
             return;
         }
 
-        status = "RESOLVED";
+        status = Status.RESOLVED;
         resolvedAt = Instant.now();
     }
 
     public boolean isOpen() {
-        return "OPEN".equals(status);
+        return status == Status.OPEN;
     }
 
     @Override
     public String toString() {
-        return "ReconResult[trade=" + tradeId + " | " + discrepancyType + " | " + status + "]";
+        return "ReconResult[trade=" + trade + " | " + discrepancyType + " | " + status + "]";
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (!(object instanceof ReconResult other)) {
+            return false;
+        }
+
+        return Objects.equals(trade, other.trade)
+                && discrepancyType == other.discrepancyType
+                && Objects.equals(detectedAt, other.detectedAt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(trade, discrepancyType, detectedAt);
     }
 
     public static final class Builder {
 
-        private Long tradeId;
-        private String status;
+        private Trade trade;
+        private Status status;
         private DiscrepancyType discrepancyType;
         private Instant detectedAt;
         private Instant resolvedAt;
 
-        public Builder tradeId(Long value) {
-            this.tradeId = value;
+        public Builder trade(Trade value) {
+            this.trade = value;
             return this;
         }
 
-        public Builder status(String value) {
+        public Builder status(Status value) {
             this.status = value;
             return this;
         }
@@ -125,7 +168,7 @@ public class ReconResult {
         }
 
         public ReconResult build() {
-            Objects.requireNonNull(tradeId, "tradeId required");
+            Objects.requireNonNull(trade, "trade required");
             Objects.requireNonNull(discrepancyType, "discrepancyType required");
             return new ReconResult(this);
         }
