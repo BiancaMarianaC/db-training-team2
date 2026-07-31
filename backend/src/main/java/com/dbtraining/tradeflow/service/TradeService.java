@@ -3,7 +3,9 @@ package com.dbtraining.tradeflow.service;
 import com.dbtraining.tradeflow.dto.TradeDto;
 import com.dbtraining.tradeflow.dto.TradeRequest;
 import com.dbtraining.tradeflow.model.BaseTrade;
+import com.dbtraining.tradeflow.model.Trade;
 import com.dbtraining.tradeflow.model.TradeStatus;
+import com.dbtraining.tradeflow.repository.TradeRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -43,9 +45,16 @@ public class TradeService {
     // TICKET-I041: in-memory store as HashMap keyed by tradeRef.
     private final Map<String, BaseTrade> tradesByRef = new HashMap<>();
 
-    // TODO(TICKET-I062) [Day 5]: replace the Map with TradeRepository injection:
-    //   private final TradeRepository tradeRepository;
-    //   public TradeService(TradeRepository tradeRepository) { ... }
+    // TICKET-I062: JPA repository, used only by createTrade() for now.
+    // getAllTrades/addTrade/sumByCounterparty/topNByValue stay on the
+    // HashMap<String, BaseTrade> above — BaseTrade and Trade are separate
+    // type hierarchies, so migrating those would be a bigger change than
+    // this ticket's TODO (createTrade only) asks for.
+    private final TradeRepository tradeRepository;
+
+    public TradeService(TradeRepository tradeRepository) {
+        this.tradeRepository = tradeRepository;
+    }
 
     public Collection<BaseTrade> getAllTrades() {
         return Collections.unmodifiableCollection(tradesByRef.values());
@@ -84,12 +93,32 @@ public class TradeService {
     }
 
     /**
-     * TODO(TICKET-I062) [Day 5]:
-     *   Convert TradeRequest -> Trade entity, save via TradeRepository,
-     *   publish TradeEvent on success (TICKET-I115), return TradeDto.
+     * TICKET-I062: converts the inbound request into a Trade entity, saves it
+     * via TradeRepository, and maps the persisted entity to a TradeDto.
+     * TradeEvent publishing to Kafka is TICKET-I115 (Day 6) — not here yet.
      */
     public TradeDto createTrade(TradeRequest request) {
-        throw new UnsupportedOperationException("TICKET-I062");
+        Trade trade = Trade.builder()
+                .tradeRef(request.tradeRef())
+                .instrumentId(request.instrumentId())
+                .counterpartyId(request.counterpartyId())
+                .quantity(request.quantity())
+                .price(request.price())
+                .tradeDate(request.tradeDate())
+                .build();
+
+        Trade saved = tradeRepository.save(trade);
+
+        return new TradeDto(
+                saved.getId(),
+                saved.getTradeRef(),
+                saved.getInstrumentId(),
+                saved.getCounterpartyId(),
+                saved.getQuantity(),
+                saved.getPrice(),
+                saved.getTradeDate(),
+                saved.getStatus(),
+                saved.getCreatedAt());
     }
 
     public TradeDto updateStatus(Long id, TradeStatus newStatus) {

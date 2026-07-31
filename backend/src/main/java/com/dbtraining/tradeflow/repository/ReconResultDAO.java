@@ -1,4 +1,4 @@
-package com.dbtraining.tradeflow.repository;
+/* package com.dbtraining.tradeflow.repository;
 
 import com.dbtraining.tradeflow.model.ReconResult;
 import com.dbtraining.tradeflow.model.DiscrepancyType;
@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
+**/
 /**
  * ============================================================================
  * ReconResultDAO — TICKET-I046 (Day 4)
@@ -23,6 +23,7 @@ import java.util.Objects;
  * WHY:     The matching engine on Day 3 writes results here.
  * ============================================================================
  */
+/**
 public class ReconResultDAO {
 
     private static final String INSERT_SQL = """
@@ -118,3 +119,4 @@ public class ReconResultDAO {
                 .build();
     }
 }
+*/
