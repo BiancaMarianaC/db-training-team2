@@ -15,6 +15,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
@@ -108,22 +109,33 @@ public class TradeService {
                 .build();
 
         Trade saved = tradeRepository.save(trade);
-
-        return new TradeDto(
-                saved.getId(),
-                saved.getTradeRef(),
-                saved.getInstrumentId(),
-                saved.getCounterpartyId(),
-                saved.getQuantity(),
-                saved.getPrice(),
-                saved.getTradeDate(),
-                saved.getStatus(),
-                saved.getCreatedAt());
+        return toDto(saved);
     }
 
+    /**
+     * TICKET-I070: loads the trade, applies the status transition via
+     * Trade.updateStatus() (the one field allowed to change after creation),
+     * and saves it back through TradeRepository.
+     */
     public TradeDto updateStatus(Long id, TradeStatus newStatus) {
-        // TODO(TICKET-I070): implement on Day 6.
-        throw new UnsupportedOperationException("TICKET-I070");
+        Trade trade = tradeRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Trade not found: " + id));
+        trade.updateStatus(newStatus);
+        Trade saved = tradeRepository.save(trade);
+        return toDto(saved);
+    }
+
+    private static TradeDto toDto(Trade trade) {
+        return new TradeDto(
+                trade.getId(),
+                trade.getTradeRef(),
+                trade.getInstrumentId(),
+                trade.getCounterpartyId(),
+                trade.getQuantity(),
+                trade.getPrice(),
+                trade.getTradeDate(),
+                trade.getStatus(),
+                trade.getCreatedAt());
     }
 
     public void softDelete(Long id) {

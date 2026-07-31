@@ -79,7 +79,7 @@ public class Trade {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private final TradeStatus status;
+    private TradeStatus status;
 
     @Column(name = "created_at", nullable = false)
     private final Instant createdAt;
@@ -112,6 +112,11 @@ public class Trade {
     public LocalDate getTradeDate()     { return tradeDate; }
     public TradeStatus getStatus()      { return status; }
     public Instant getCreatedAt()       { return createdAt; }
+
+    /** TICKET-I070: controlled status transition (only field allowed to change after creation). */
+    public void updateStatus(TradeStatus newStatus) {
+        this.status = Objects.requireNonNull(newStatus, "newStatus required");
+    }
 
     @Override
     public boolean equals(Object o) {
