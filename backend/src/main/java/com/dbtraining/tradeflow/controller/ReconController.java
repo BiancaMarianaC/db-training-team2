@@ -1,6 +1,7 @@
 package com.dbtraining.tradeflow.controller;
 
 import com.dbtraining.tradeflow.dto.ReconSummary;
+import com.dbtraining.tradeflow.service.ReconciliationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
@@ -29,11 +30,16 @@ import java.util.Map;
 @Tag(name = "Reconciliation", description = "Run recon + manage breaks")
 public class ReconController {
 
+    private final ReconciliationService reconService;
+
+    public ReconController(ReconciliationService reconService) {
+        this.reconService = reconService;
+    }
+
     @Operation(summary = "Trigger a reconciliation run")
     @PostMapping("/run")
     public ReconSummary run() {
-        // TODO(TICKET-I072): inject ReconciliationService, call run(), return summary.
-        throw new UnsupportedOperationException("TICKET-I072");
+        return reconService.runForAll();
     }
 
     @Operation(summary = "List reconciliation results")
