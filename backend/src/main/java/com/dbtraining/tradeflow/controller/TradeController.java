@@ -89,8 +89,8 @@ public class TradeController {
     @Operation(summary = "Soft-delete a trade (sets status to CANCELLED)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> softDelete(@PathVariable Long id) {
-        // TODO(TICKET-I071): tradeService.softDelete(id); return 204.
-        throw new UnsupportedOperationException("TICKET-I071");
+        tradeService.softDelete(id);
+        return ResponseEntity.noContent().build();
     }
 
     /** Tiny inbound record for PUT /{id}/status. */
