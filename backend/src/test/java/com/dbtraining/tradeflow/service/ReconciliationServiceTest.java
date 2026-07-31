@@ -10,16 +10,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.dbtraining.tradeflow.repository.ReconResultRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.mockito.ArgumentCaptor;
 // import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-// TODO(TICKET-I079): Re-add these imports when ReconciliationService
-// accepts ReconResultRepository and MeterRegistry constructor dependencies.
-// import com.dbtraining.tradeflow.repository.ReconResultRepository;
-// import io.micrometer.core.instrument.MeterRegistry;
-// import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-// import org.mockito.Mock;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -48,10 +45,8 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 class ReconciliationServiceTest {
-    /** TODO(TICKET-I079): Re-enable when ReconciliationService accepts 
-        reconResultRepository and MeterRegistry */
-    // @Mock private ReconResultRepository reconResultRepository;
-    // private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+    @Mock private ReconResultRepository reconResultRepository;
+    private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
     @Mock private TradeDAO tradeDAO;
     /** ReconResultDAO was removed as part of TICKET-I061
@@ -62,12 +57,9 @@ class ReconciliationServiceTest {
     // @InjectMocks
     private ReconciliationService service;
 
-    // TODO(TICKET-I079): Update this to pass reconResultRepository and
-    // meterRegistry once those constructor dependencies are added.
-    // i.e. service = new ReconciliationService(reconResultRepository, meterRegistry);
     @BeforeEach
     void setUp() {
-        service = new ReconciliationService();
+        service = new ReconciliationService(tradeDAO, reconResultRepository, meterRegistry);
     }
 
     @Test

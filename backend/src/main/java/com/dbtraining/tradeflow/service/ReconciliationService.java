@@ -5,6 +5,9 @@ import com.dbtraining.tradeflow.dto.ReconReport;
 import com.dbtraining.tradeflow.dto.ReconSummary;
 import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.DiscrepancyType;
+import com.dbtraining.tradeflow.repository.ReconResultRepository;
+import com.dbtraining.tradeflow.repository.TradeDAO;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -44,6 +47,35 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ReconciliationService {
+
+    private final TradeDAO tradeDAO;
+    private final ReconResultRepository reconResultRepository;
+    private final MeterRegistry meterRegistry;
+
+    public ReconciliationService(TradeDAO tradeDAO,
+                                  ReconResultRepository reconResultRepository,
+                                  MeterRegistry meterRegistry) {
+        this.tradeDAO = tradeDAO;
+        this.reconResultRepository = reconResultRepository;
+        this.meterRegistry = meterRegistry;
+    }
+
+    /**
+     * TICKET-I079: not implemented yet. tradeDAO.findAll() returns
+     * List<Trade>, but matchTrades() (below) works on List<BaseTrade> —
+     * Trade and BaseTrade are separate type hierarchies (same issue as
+     * TICKET-I062), so this can't just forward to matchTrades() as-is.
+     * There's also no real "external feed" source wired up yet, so it's
+     * not clear what runForAll() should compare the internal trades
+     * against. Left as an explicit failure instead of guessing, so it
+     * doesn't silently do the wrong thing (e.g. flagging every trade as
+     * a discrepancy).
+     */
+    public void runForAll() {
+        throw new UnsupportedOperationException(
+                "TICKET-I079: runForAll() needs a real external feed source and a "
+                        + "Trade/BaseTrade reconciliation path before this can be implemented");
+    }
 
     /**
      * TODO(TICKET-I034 + TICKET-I035):
