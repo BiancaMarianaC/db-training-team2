@@ -3,24 +3,27 @@ package com.dbtraining.tradeflow.service;
 import com.dbtraining.tradeflow.model.*;
 import com.dbtraining.tradeflow.dto.Discrepancy;
 import com.dbtraining.tradeflow.dto.ReconReport;
+import com.dbtraining.tradeflow.repository.AuditLogRepository;
 import com.dbtraining.tradeflow.repository.ReconResultRepository;
+import com.dbtraining.tradeflow.exception.TradeNotFoundException;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 // import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -39,6 +42,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ReconciliationServiceTest {
     @Mock private ReconResultRepository reconResultRepository;
+    @Mock private AuditLogRepository auditLogRepository;
     private SimpleMeterRegistry meterRegistry;
     /** ReconResultDAO was removed as part of TICKET-I061
         as it was no longer used at that point */
@@ -51,7 +55,8 @@ class ReconciliationServiceTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        service = new ReconciliationService(reconResultRepository, meterRegistry);
+        service = new ReconciliationService(
+                reconResultRepository, auditLogRepository, meterRegistry);
     }
 
     @Test
@@ -81,6 +86,30 @@ class ReconciliationServiceTest {
                 .containsEntry(DiscrepancyType.DATE_MISMATCH, 0)
                 .containsEntry(DiscrepancyType.MISSING_TRADE, 0);
         assertThat(meterRegistry.get("tradeflow_recon_run_seconds").timer().count())
+                .isEqualTo(1);
+    }
+
+    @Test
+    void resolveBreak_resolvesAuditsAndIncrementsMetric() {
+        ReconResult result = ReconResult.builder()
+                .trade(sampleTrade("TRD-RESOLVE"))
+                .discrepancyType(DiscrepancyType.PRICE_MISMATCH)
+                .build();
+        when(reconResultRepository.findById(7L)).thenReturn(java.util.Optional.of(result));
+
+        service.resolveBreak(7L, "trader");
+
+        assertThat(result.getStatus()).isEqualTo(ReconResult.Status.RESOLVED);
+        assertThat(result.getResolvedAt()).isNotNull();
+        ArgumentCaptor<AuditLog> auditCaptor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogRepository).save(auditCaptor.capture());
+        assertThat(auditCaptor.getValue().getTableName()).isEqualTo("recon_breaks");
+        assertThat(auditCaptor.getValue().getOperation()).isEqualTo(AuditLog.Operation.U);
+        assertThat(auditCaptor.getValue().getRowPk()).isEqualTo(7L);
+        assertThat(auditCaptor.getValue().getChangedBy()).isEqualTo("trader");
+        assertThat(auditCaptor.getValue().getBeforeData()).contains("OPEN");
+        assertThat(auditCaptor.getValue().getAfterData()).contains("RESOLVED");
+        assertThat(meterRegistry.get("tradeflow_recon_resolved_total").counter().count())
                 .isEqualTo(1);
     }
 
@@ -116,6 +145,36 @@ class ReconciliationServiceTest {
         service.listBreaks(ReconResult.Status.RESOLVED, null, pageable);
 
         verify(reconResultRepository).findByStatus(ReconResult.Status.RESOLVED, pageable);
+    }
+
+    @Test
+    void resolveBreak_whenAlreadyResolved_isIdempotent() {
+        ReconResult result = ReconResult.builder()
+                .trade(sampleTrade("TRD-RESOLVED"))
+                .discrepancyType(DiscrepancyType.PRICE_MISMATCH)
+                .build();
+        result.resolve();
+        when(reconResultRepository.findById(8L)).thenReturn(java.util.Optional.of(result));
+
+        service.resolveBreak(8L, "trader");
+
+        verifyNoInteractions(auditLogRepository);
+        assertThat(meterRegistry.get("tradeflow_recon_resolved_total").counter().count())
+                .isZero();
+    }
+
+    @Test
+    void resolveBreak_whenMissing_throwsNotFound() {
+        when(reconResultRepository.findById(9999L)).thenReturn(java.util.Optional.empty());
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.resolveBreak(9999L, "trader"))
+                .isInstanceOf(TradeNotFoundException.class)
+                .hasMessage("Recon break 9999 not found");
+
+        verifyNoInteractions(auditLogRepository);
+        assertThat(meterRegistry.get("tradeflow_recon_resolved_total").counter().count())
+                .isZero();
     }
 
     @Test

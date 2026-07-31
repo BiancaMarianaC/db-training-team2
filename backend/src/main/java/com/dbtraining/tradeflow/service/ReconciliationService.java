@@ -5,9 +5,13 @@ import com.dbtraining.tradeflow.dto.ReconReport;
 import com.dbtraining.tradeflow.dto.ReconSummary;
 import com.dbtraining.tradeflow.dto.ReconResultDto;
 import com.dbtraining.tradeflow.model.BaseTrade;
+import com.dbtraining.tradeflow.model.AuditLog;
 import com.dbtraining.tradeflow.model.DiscrepancyType;
 import com.dbtraining.tradeflow.model.ReconResult;
+import com.dbtraining.tradeflow.repository.AuditLogRepository;
 import com.dbtraining.tradeflow.repository.ReconResultRepository;
+import com.dbtraining.tradeflow.exception.TradeNotFoundException;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.data.domain.Page;
@@ -55,12 +59,19 @@ public class ReconciliationService {
 
     private final ReconResultRepository reconResultRepository;
     private final Timer reconRunTimer;
+    private final AuditLogRepository auditLogRepository;
+    private final Counter reconResolvedCounter;
 
     public ReconciliationService(ReconResultRepository reconResultRepository,
+                                 AuditLogRepository auditLogRepository,
                                  MeterRegistry meterRegistry) {
         this.reconResultRepository = reconResultRepository;
+        this.auditLogRepository = auditLogRepository;
         this.reconRunTimer = Timer.builder("tradeflow_recon_run_seconds")
                 .description("Time taken for a full reconciliation run")
+                .register(meterRegistry);
+        this.reconResolvedCounter = Counter.builder("tradeflow_recon_resolved_total")
+                .description("Count of reconciliation breaks marked RESOLVED")
                 .register(meterRegistry);
     }
 
@@ -96,6 +107,29 @@ public class ReconciliationService {
                 : reconResultRepository.findByStatusAndCounterpartyId(
                         status, counterpartyId, pageable);
         return results.map(ReconResultDto::from);
+    }
+
+    @Transactional
+    public void resolveBreak(Long id, String changedBy) {
+        ReconResult result = reconResultRepository.findById(id)
+                .orElseThrow(() -> new TradeNotFoundException(
+                        "Recon break " + id + " not found"));
+        if (result.getStatus() == ReconResult.Status.RESOLVED) {
+            return;
+        }
+
+        String previousStatus = result.getStatus().name();
+        result.resolve();
+        auditLogRepository.save(AuditLog.builder()
+                .tableName("recon_breaks")
+                .operation(AuditLog.Operation.U)
+                .rowPk(id)
+                .beforeData("{\"status\":\"" + previousStatus + "\",\"resolvedAt\":null}")
+                .afterData("{\"status\":\"RESOLVED\",\"resolvedAt\":\""
+                        + result.getResolvedAt() + "\"}")
+                .changedBy(changedBy)
+                .build());
+        reconResolvedCounter.increment();
     }
 
     /**

@@ -3,6 +3,8 @@ package com.dbtraining.tradeflow.controller;
 import com.dbtraining.tradeflow.config.SecurityConfig;
 import com.dbtraining.tradeflow.dto.ReconResultDto;
 import com.dbtraining.tradeflow.dto.ReconSummary;
+import com.dbtraining.tradeflow.exception.GlobalExceptionHandler;
+import com.dbtraining.tradeflow.exception.TradeNotFoundException;
 import com.dbtraining.tradeflow.model.DiscrepancyType;
 import com.dbtraining.tradeflow.model.ReconResult;
 import com.dbtraining.tradeflow.service.ReconciliationService;
@@ -21,17 +23,19 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ReconController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, GlobalExceptionHandler.class})
 class ReconControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -70,8 +74,37 @@ class ReconControllerTest {
     }
 
     @Test
+    void resolve_asTrader_returnsNoContentAndUsesAuthenticatedUser() throws Exception {
+        mockMvc.perform(put("/api/v1/recon/7/resolve")
+                        .with(httpBasic("trader", "trader-pw")))
+                .andExpect(status().isNoContent());
+
+        verify(reconService).resolveBreak(7L, "trader");
+    }
+
+    @Test
+    void resolve_asAdmin_isAllowed() throws Exception {
+        mockMvc.perform(put("/api/v1/recon/7/resolve")
+                        .with(httpBasic("admin", "admin-pw")))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void resolve_asViewer_isForbidden() throws Exception {
+        mockMvc.perform(put("/api/v1/recon/7/resolve")
+                        .with(httpBasic("viewer", "viewer-pw")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void run_withoutCredentials_isUnauthorized() throws Exception {
         mockMvc.perform(post("/api/v1/recon/run"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void resolve_withoutCredentials_isUnauthorized() throws Exception {
+        mockMvc.perform(put("/api/v1/recon/7/resolve"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -126,5 +159,16 @@ class ReconControllerTest {
     void listResults_withoutCredentials_isUnauthorized() throws Exception {
         mockMvc.perform(get("/api/v1/recon/results"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void resolve_whenBreakDoesNotExist_returnsNotFound() throws Exception {
+        doThrow(new TradeNotFoundException("Recon break 9999 not found"))
+                .when(reconService).resolveBreak(9999L, "trader");
+
+        mockMvc.perform(put("/api/v1/recon/9999/resolve")
+                        .with(httpBasic("trader", "trader-pw")))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("TRADE_NOT_FOUND"));
     }
 }
