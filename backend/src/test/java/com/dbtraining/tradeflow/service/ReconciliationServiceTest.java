@@ -48,7 +48,6 @@ class ReconciliationServiceTest {
     @Mock private ReconResultRepository reconResultRepository;
     private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
 
-    @Mock private TradeDAO tradeDAO;
     /** ReconResultDAO was removed as part of TICKET-I061
         as it was no longer used at that point */
     // @Mock private ReconResultDAO reconResultDAO;
@@ -59,7 +58,7 @@ class ReconciliationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ReconciliationService(tradeDAO, reconResultRepository, meterRegistry);
+        service = new ReconciliationService(reconResultRepository, meterRegistry);
     }
 
     @Test

@@ -6,7 +6,6 @@ import com.dbtraining.tradeflow.dto.ReconSummary;
 import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.DiscrepancyType;
 import com.dbtraining.tradeflow.repository.ReconResultRepository;
-import com.dbtraining.tradeflow.repository.TradeDAO;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
@@ -48,14 +47,11 @@ import java.util.stream.Collectors;
 @Service
 public class ReconciliationService {
 
-    private final TradeDAO tradeDAO;
     private final ReconResultRepository reconResultRepository;
     private final MeterRegistry meterRegistry;
 
-    public ReconciliationService(TradeDAO tradeDAO,
-                                  ReconResultRepository reconResultRepository,
+    public ReconciliationService(ReconResultRepository reconResultRepository,
                                   MeterRegistry meterRegistry) {
-        this.tradeDAO = tradeDAO;
         this.reconResultRepository = reconResultRepository;
         this.meterRegistry = meterRegistry;
     }
@@ -70,6 +66,10 @@ public class ReconciliationService {
      * against. Left as an explicit failure instead of guessing, so it
      * doesn't silently do the wrong thing (e.g. flagging every trade as
      * a discrepancy).
+     * 
+     * UPDATE (TICKET-I078):
+     * TradeDAO dependency removed because it was unused.
+     * Persistence is now handled through JPA repositories.
      */
     public void runForAll() {
         throw new UnsupportedOperationException(
