@@ -3,12 +3,15 @@ package com.dbtraining.tradeflow.service;
 import com.dbtraining.tradeflow.dto.Discrepancy;
 import com.dbtraining.tradeflow.dto.ReconReport;
 import com.dbtraining.tradeflow.dto.ReconSummary;
+import com.dbtraining.tradeflow.dto.ReconResultDto;
 import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.DiscrepancyType;
 import com.dbtraining.tradeflow.model.ReconResult;
 import com.dbtraining.tradeflow.repository.ReconResultRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,6 +85,17 @@ public class ReconciliationService {
             return new ReconSummary(total, total, matched, unmatched,
                     Collections.unmodifiableMap(breakdown));
         });
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ReconResultDto> listBreaks(ReconResult.Status status,
+                                           Long counterpartyId,
+                                           Pageable pageable) {
+        Page<ReconResult> results = counterpartyId == null
+                ? reconResultRepository.findByStatus(status, pageable)
+                : reconResultRepository.findByStatusAndCounterpartyId(
+                        status, counterpartyId, pageable);
+        return results.map(ReconResultDto::from);
     }
 
     /**
