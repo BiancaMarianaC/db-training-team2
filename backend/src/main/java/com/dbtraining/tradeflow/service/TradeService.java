@@ -138,8 +138,17 @@ public class TradeService {
                 trade.getCreatedAt());
     }
 
+    /**
+     * TICKET-I071: soft delete just sets the trade's status to CANCELLED,
+     * reusing the same transition path as updateStatus() (TICKET-I070) — the
+     * row stays in the database, nothing is actually deleted.
+     *
+     * Not done here: writing an AuditLog row for this change. The AuditLog
+     * entity exists (TICKET-I059), but there's no AuditLogRepository or
+     * service to write through yet, so that part is left for whichever
+     * ticket adds that infrastructure.
+     */
     public void softDelete(Long id) {
-        // TODO(TICKET-I071): implement soft delete + audit log on Day 6.
-        throw new UnsupportedOperationException("TICKET-I071");
+        updateStatus(id, TradeStatus.CANCELLED);
     }
 }
