@@ -3,31 +3,24 @@ package com.dbtraining.tradeflow.service;
 import com.dbtraining.tradeflow.model.*;
 import com.dbtraining.tradeflow.dto.Discrepancy;
 import com.dbtraining.tradeflow.dto.ReconReport;
-import com.dbtraining.tradeflow.repository.TradeDAO;
-
+import com.dbtraining.tradeflow.repository.ReconResultRepository;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import com.dbtraining.tradeflow.repository.ReconResultRepository;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import org.mockito.ArgumentCaptor;
 // import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -47,8 +40,6 @@ import static org.mockito.Mockito.when;
 class ReconciliationServiceTest {
     @Mock private ReconResultRepository reconResultRepository;
     private SimpleMeterRegistry meterRegistry;
-
-    @Mock private TradeDAO tradeDAO;
     /** ReconResultDAO was removed as part of TICKET-I061
         as it was no longer used at that point */
     // @Mock private ReconResultDAO reconResultDAO;
@@ -91,6 +82,40 @@ class ReconciliationServiceTest {
                 .containsEntry(DiscrepancyType.MISSING_TRADE, 0);
         assertThat(meterRegistry.get("tradeflow_recon_run_seconds").timer().count())
                 .isEqualTo(1);
+    }
+
+    @Test
+    void listBreaks_filtersByStatusAndCounterpartyAndMapsDto() {
+        Trade trade = sampleTrade("TRD-OPEN");
+        ReconResult result = ReconResult.builder()
+                .trade(trade)
+                .discrepancyType(DiscrepancyType.PRICE_MISMATCH)
+                .build();
+        PageRequest pageable = PageRequest.of(0, 10);
+        when(reconResultRepository.findByStatusAndCounterpartyId(
+                ReconResult.Status.OPEN, 1L, pageable))
+                .thenReturn(new PageImpl<>(List.of(result), pageable, 1));
+
+        var page = service.listBreaks(ReconResult.Status.OPEN, 1L, pageable);
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent().get(0).tradeRef()).isEqualTo("TRD-OPEN");
+        assertThat(page.getContent().get(0).counterpartyId()).isEqualTo(1L);
+        assertThat(page.getContent().get(0).discrepancyType())
+                .isEqualTo(DiscrepancyType.PRICE_MISMATCH);
+        verify(reconResultRepository).findByStatusAndCounterpartyId(
+                ReconResult.Status.OPEN, 1L, pageable);
+    }
+
+    @Test
+    void listBreaks_withoutCounterpartyUsesStatusQuery() {
+        PageRequest pageable = PageRequest.of(1, 5);
+        when(reconResultRepository.findByStatus(ReconResult.Status.RESOLVED, pageable))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        service.listBreaks(ReconResult.Status.RESOLVED, null, pageable);
+
+        verify(reconResultRepository).findByStatus(ReconResult.Status.RESOLVED, pageable);
     }
 
     @Test
