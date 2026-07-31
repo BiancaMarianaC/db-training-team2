@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -49,19 +48,15 @@ public class TradeController {
     // ------------------------------------------------------------------------
     // TICKET-I068
     // ------------------------------------------------------------------------
-    @Operation(summary = "List trades (paginated, filterable)")
+    @Operation(summary = "List trades (filterable by status and/or trade-date range)")
     @GetMapping
     public List<TradeDto> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to
     ) {
-        // TODO(TICKET-I068): replace this empty response with a real DB-backed
-        //   call once the JDBC DAO (Day 4 / TICKET-I045) or JPA repository
-        //   (Day 5 / TICKET-I060+I062) is in place.
-        //   For Day 1, returning an empty list keeps the React UI booting
-        //   gracefully (shows "no trades match") while you build the schema.
-        return Collections.emptyList();
+        TradeStatus statusEnum = status != null ? TradeStatus.valueOf(status) : null;
+        return tradeService.getTrades(statusEnum, from, to);
     }
 
     // ------------------------------------------------------------------------
