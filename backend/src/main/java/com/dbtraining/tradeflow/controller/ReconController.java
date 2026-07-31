@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -54,8 +56,9 @@ public class ReconController {
 
     @Operation(summary = "Mark a break as resolved")
     @PutMapping("/{id}/resolve")
-    public void resolve(@PathVariable Long id) {
-        // TODO(TICKET-I074): update status to RESOLVED, set resolved_at, write audit log.
-        throw new UnsupportedOperationException("TICKET-I074");
+    public ResponseEntity<Void> resolve(@PathVariable Long id,
+                                        Authentication authentication) {
+        reconService.resolveBreak(id, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }
