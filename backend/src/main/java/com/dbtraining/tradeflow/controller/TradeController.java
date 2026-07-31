@@ -2,6 +2,7 @@ package com.dbtraining.tradeflow.controller;
 
 import com.dbtraining.tradeflow.dto.TradeDto;
 import com.dbtraining.tradeflow.dto.TradeRequest;
+import com.dbtraining.tradeflow.model.TradeStatus;
 import com.dbtraining.tradeflow.service.TradeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -79,8 +80,7 @@ public class TradeController {
     @Operation(summary = "Update a trade's status")
     @PutMapping("/{id}/status")
     public TradeDto updateStatus(@PathVariable Long id, @RequestBody StatusUpdate body) {
-        // TODO(TICKET-I070): delegate to tradeService.updateStatus(id, body.status()).
-        throw new UnsupportedOperationException("TICKET-I070");
+        return tradeService.updateStatus(id, TradeStatus.valueOf(body.status()));
     }
 
     // ------------------------------------------------------------------------
@@ -89,8 +89,8 @@ public class TradeController {
     @Operation(summary = "Soft-delete a trade (sets status to CANCELLED)")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> softDelete(@PathVariable Long id) {
-        // TODO(TICKET-I071): tradeService.softDelete(id); return 204.
-        throw new UnsupportedOperationException("TICKET-I071");
+        tradeService.softDelete(id);
+        return ResponseEntity.noContent().build();
     }
 
     /** Tiny inbound record for PUT /{id}/status. */
