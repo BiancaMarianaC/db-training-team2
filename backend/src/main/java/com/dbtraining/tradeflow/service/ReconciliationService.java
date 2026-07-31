@@ -69,6 +69,8 @@ public class ReconciliationService {
         this.auditLogRepository = auditLogRepository;
         this.reconRunTimer = Timer.builder("tradeflow_recon_run_seconds")
                 .description("Time taken for a full reconciliation run")
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .publishPercentileHistogram()
                 .register(meterRegistry);
         this.reconResolvedCounter = Counter.builder("tradeflow_recon_resolved_total")
                 .description("Count of reconciliation breaks marked RESOLVED")

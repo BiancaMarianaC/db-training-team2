@@ -6,6 +6,8 @@ import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.Trade;
 import com.dbtraining.tradeflow.model.TradeStatus;
 import com.dbtraining.tradeflow.repository.TradeRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -52,9 +54,13 @@ public class TradeService {
     // type hierarchies, so migrating those would be a bigger change than
     // this ticket's TODO (createTrade only) asks for.
     private final TradeRepository tradeRepository;
+    private final Counter tradesCreatedCounter;
 
-    public TradeService(TradeRepository tradeRepository) {
+    public TradeService(TradeRepository tradeRepository, MeterRegistry meterRegistry) {
         this.tradeRepository = tradeRepository;
+        this.tradesCreatedCounter = Counter.builder("tradeflow_trades_created_total")
+                .description("Total trades successfully created via POST /api/v1/trades")
+                .register(meterRegistry);
     }
 
     public Collection<BaseTrade> getAllTrades() {
@@ -109,6 +115,7 @@ public class TradeService {
                 .build();
 
         Trade saved = tradeRepository.save(trade);
+        tradesCreatedCounter.increment();
         return toDto(saved);
     }
 
