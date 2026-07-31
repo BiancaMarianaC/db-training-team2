@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -97,6 +98,30 @@ public class TradeService {
                 .sorted(Comparator.comparing(BaseTrade::getNotional).reversed())
                 .limit(n)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * TICKET-I068: list trades, optionally filtered by status and/or a
+     * trade-date range. If only one of from/to is given (not both), the date
+     * filter is skipped rather than guessing an open-ended range.
+     */
+    public List<TradeDto> getTrades(TradeStatus status, LocalDate from, LocalDate to) {
+        List<Trade> trades;
+        boolean hasDateRange = from != null && to != null;
+
+        if (status != null && hasDateRange) {
+            trades = tradeRepository.findByTradeDateBetween(from, to).stream()
+                    .filter(t -> t.getStatus() == status)
+                    .collect(Collectors.toList());
+        } else if (status != null) {
+            trades = tradeRepository.findByStatus(status);
+        } else if (hasDateRange) {
+            trades = tradeRepository.findByTradeDateBetween(from, to);
+        } else {
+            trades = tradeRepository.findAll();
+        }
+
+        return trades.stream().map(TradeService::toDto).collect(Collectors.toList());
     }
 
     /**
