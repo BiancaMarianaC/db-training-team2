@@ -49,11 +49,7 @@ public class Counterparty {
     @Column(nullable = false, length = 10)
     private String region;
 
-    /**
-     * Required by JPA.
-     */
-    protected Counterparty() {
-    }
+    protected Counterparty() {}
 
     private Counterparty(Builder builder) {
         this.name = builder.name;
