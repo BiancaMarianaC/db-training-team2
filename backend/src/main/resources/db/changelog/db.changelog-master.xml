@@ -39,7 +39,7 @@
 
     <!--
         TICKET-I010 verified: `./mvnw spring-boot:run` boots clean against
-        the dev (H2) profile. All 12 changesets above run EXECUTED in
+        the dev (H2) profile. All 14 changesets above run EXECUTED in
         DATABASECHANGELOG, in order. Tables present in /h2-console: TRADES,
         INSTRUMENTS, COUNTERPARTIES, SETTLEMENTS, RECON_BREAKS, AUDIT_LOG,
         plus views V_OPEN_BREAKS and V_SETTLEMENT_LAG.
