@@ -67,6 +67,10 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        step: 10s   # aligns with prometheus.yml scrape_interval: 10s
 
 # ============================================================================
 # Springdoc / Swagger — TICKET-I063
