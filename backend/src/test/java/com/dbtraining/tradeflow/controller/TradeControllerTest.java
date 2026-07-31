@@ -70,4 +70,56 @@ class TradeControllerTest {
                 .andExpect(jsonPath("$.tradeRef").value("TRD-2026-0099"))
                 .andExpect(jsonPath("$.status").value("PENDING"));
     }
+
+    /**
+     * TICKET-I083: missing quantity fails @NotNull on TradeRequest.quantity,
+     * caught by GlobalExceptionHandler's MethodArgumentNotValidException
+     * handler -> code "VALIDATION_FAILED" + details.quantity.
+     */
+    @Test
+    void createTrade_missingQuantity_returns400() throws Exception {
+        String requestJson = """
+                {
+                    "tradeRef": "TRD-2026-0099",
+                    "instrumentId": 1,
+                    "counterpartyId": 1,
+                    "price": 250.50,
+                    "tradeDate": "2026-03-01"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/trades")
+                        .with(httpBasic("trader", "trader-pw"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.details.quantity").exists());
+    }
+
+    /**
+     * TICKET-I083: negative quantity fails @Positive on TradeRequest.quantity,
+     * same error envelope as the missing-field case above.
+     */
+    @Test
+    void createTrade_negativeQuantity_returns400() throws Exception {
+        String requestJson = """
+                {
+                    "tradeRef": "TRD-2026-0099",
+                    "instrumentId": 1,
+                    "counterpartyId": 1,
+                    "quantity": -100,
+                    "price": 250.50,
+                    "tradeDate": "2026-03-01"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/trades")
+                        .with(httpBasic("trader", "trader-pw"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.details.quantity").exists());
+    }
 }
