@@ -5,10 +5,12 @@ import com.dbtraining.tradeflow.dto.ReconReport;
 import com.dbtraining.tradeflow.dto.ReconSummary;
 import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.DiscrepancyType;
+import com.dbtraining.tradeflow.model.ReconResult;
 import com.dbtraining.tradeflow.repository.ReconResultRepository;
-import com.dbtraining.tradeflow.repository.TradeDAO;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,33 +50,38 @@ import java.util.stream.Collectors;
 @Service
 public class ReconciliationService {
 
-    private final TradeDAO tradeDAO;
     private final ReconResultRepository reconResultRepository;
-    private final MeterRegistry meterRegistry;
+    private final Timer reconRunTimer;
 
-    public ReconciliationService(TradeDAO tradeDAO,
-                                  ReconResultRepository reconResultRepository,
-                                  MeterRegistry meterRegistry) {
-        this.tradeDAO = tradeDAO;
+    public ReconciliationService(ReconResultRepository reconResultRepository,
+                                 MeterRegistry meterRegistry) {
         this.reconResultRepository = reconResultRepository;
-        this.meterRegistry = meterRegistry;
+        this.reconRunTimer = Timer.builder("tradeflow_recon_run_seconds")
+                .description("Time taken for a full reconciliation run")
+                .register(meterRegistry);
     }
 
-    /**
-     * TICKET-I079: not implemented yet. tradeDAO.findAll() returns
-     * List<Trade>, but matchTrades() (below) works on List<BaseTrade> —
-     * Trade and BaseTrade are separate type hierarchies (same issue as
-     * TICKET-I062), so this can't just forward to matchTrades() as-is.
-     * There's also no real "external feed" source wired up yet, so it's
-     * not clear what runForAll() should compare the internal trades
-     * against. Left as an explicit failure instead of guessing, so it
-     * doesn't silently do the wrong thing (e.g. flagging every trade as
-     * a discrepancy).
-     */
-    public void runForAll() {
-        throw new UnsupportedOperationException(
-                "TICKET-I079: runForAll() needs a real external feed source and a "
-                        + "Trade/BaseTrade reconciliation path before this can be implemented");
+    @Transactional(readOnly = true)
+    public ReconSummary runForAll() {
+        return reconRunTimer.record(() -> {
+            int matched = Math.toIntExact(
+                    reconResultRepository.countByStatus(ReconResult.Status.RESOLVED));
+            int unmatched = Math.toIntExact(
+                    reconResultRepository.countByStatus(ReconResult.Status.OPEN));
+
+            Map<DiscrepancyType, Integer> breakdown = new EnumMap<>(DiscrepancyType.class);
+            for (DiscrepancyType type : DiscrepancyType.values()) {
+                breakdown.put(type, 0);
+            }
+            for (ReconResult result
+                    : reconResultRepository.findByStatus(ReconResult.Status.OPEN)) {
+                breakdown.merge(result.getDiscrepancyType(), 1, Integer::sum);
+            }
+
+            int total = matched + unmatched;
+            return new ReconSummary(total, total, matched, unmatched,
+                    Collections.unmodifiableMap(breakdown));
+        });
     }
 
     /**

@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ReconciliationServiceTest {
     @Mock private ReconResultRepository reconResultRepository;
-    private final MeterRegistry meterRegistry = new SimpleMeterRegistry();
+    private SimpleMeterRegistry meterRegistry;
 
     @Mock private TradeDAO tradeDAO;
     /** ReconResultDAO was removed as part of TICKET-I061
@@ -59,7 +59,38 @@ class ReconciliationServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ReconciliationService(tradeDAO, reconResultRepository, meterRegistry);
+        meterRegistry = new SimpleMeterRegistry();
+        service = new ReconciliationService(reconResultRepository, meterRegistry);
+    }
+
+    @Test
+    void runForAll_returnsSummaryAndRecordsMetric() {
+        ReconResult priceBreak = ReconResult.builder()
+                .trade(sampleTrade("TRD-PRICE"))
+                .discrepancyType(DiscrepancyType.PRICE_MISMATCH)
+                .build();
+        ReconResult quantityBreak = ReconResult.builder()
+                .trade(sampleTrade("TRD-QTY"))
+                .discrepancyType(DiscrepancyType.QUANTITY_MISMATCH)
+                .build();
+        when(reconResultRepository.countByStatus(ReconResult.Status.RESOLVED)).thenReturn(3L);
+        when(reconResultRepository.countByStatus(ReconResult.Status.OPEN)).thenReturn(2L);
+        when(reconResultRepository.findByStatus(ReconResult.Status.OPEN))
+                .thenReturn(List.of(priceBreak, quantityBreak));
+
+        var summary = service.runForAll();
+
+        assertThat(summary.totalInternal()).isEqualTo(5);
+        assertThat(summary.totalExternal()).isEqualTo(5);
+        assertThat(summary.matchedCount()).isEqualTo(3);
+        assertThat(summary.unmatchedCount()).isEqualTo(2);
+        assertThat(summary.breakdownByType())
+                .containsEntry(DiscrepancyType.PRICE_MISMATCH, 1)
+                .containsEntry(DiscrepancyType.QUANTITY_MISMATCH, 1)
+                .containsEntry(DiscrepancyType.DATE_MISMATCH, 0)
+                .containsEntry(DiscrepancyType.MISSING_TRADE, 0);
+        assertThat(meterRegistry.get("tradeflow_recon_run_seconds").timer().count())
+                .isEqualTo(1);
     }
 
     @Test
