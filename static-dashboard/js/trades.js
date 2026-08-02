@@ -6,14 +6,13 @@
 // WHY:     Day 7 is the "feel the pain" sprint. Day 8 you replace it with React.
 // OBSERVE: After this script runs, the <tbody> contains real trade rows.
 // ============================================================================
-// HINT: ONLY for this local dashboard, hard-code the viewer:viewer-pass creds.
+// HINT: ONLY for this local dashboard, hard-code the viewer:viewer-pw creds.
 //       In the real React app (Day 8+) we centralise auth in apiService.js
 //       and load creds from a login form.
 // ============================================================================
 
-// TODO(TICKET-I093): set the base URL — default to localhost:8080 during dev.
 const API_BASE = "http://localhost:8080/api/v1";
-const AUTH_HEADER = "Basic " + btoa("viewer:viewer-pass");
+const AUTH_HEADER = "Basic " + btoa("viewer:viewer-pw");
 
 // Module-level state — Day 8 is exactly what makes this approach painful.
 let allTrades = [];
@@ -25,15 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTrades();
 });
 
-/**
- * TODO(TICKET-I093):
- *  - show loading <div>
- *  - fetch /api/v1/trades with Authorization header
- *  - on success: hide loading, save to allTrades, render
- *  - on error: hide loading, show error <div>
- *
- * HINT: use async/await for readability.
- */
 async function loadTrades() {
     const loading = document.getElementById("trades-loading");
     const errorDiv = document.getElementById("trades-error");
@@ -79,7 +69,7 @@ function render() {
 }
 
 function rowHtml(t) {
-    // TODO(TICKET-I092 / I093): show a badge with status colour.
+    // TODO(TICKET-I092): show a badge with status colour.
     const badgeClass = "badge-" + (t.status || "pending").toLowerCase();
     return `
         <tr>
