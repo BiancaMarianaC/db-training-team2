@@ -10,12 +10,6 @@
  *          submission until validation passes.
  * ============================================================================
  *
- *  TODO(TICKET-I106):
- *    - all fields registered with proper validators
- *    - on submit calls apiService.createTrade()
- *    - success: navigate('/trades') + toast
- *    - server error: show error envelope message inline
- *
  *  HINT: For a zod schema, install @hookform/resolvers and zod, then:
  *    const schema = z.object({ ... });
  *    const { register, ... } = useForm({ resolver: zodResolver(schema) });
@@ -39,11 +33,11 @@ export default function AddTradeForm() {
             await createTrade(data);
             navigate('/trades');
         } catch (e) {
-            // TODO(TICKET-I106): map server-side field errors back to RHF.
-            if (e instanceof ApiError && e.body?.fieldErrors) {
-                Object.entries(e.body.fieldErrors).forEach(([field, msg]) =>
+            if (e instanceof ApiError && e.body?.details) {
+                Object.entries(e.body.details).forEach(([field, msg]) =>
                     setError(field, { message: msg })
                 );
+                setError('root.serverError', { message: e.message });
             } else {
                 setError('root.serverError', { message: e.message });
             }
