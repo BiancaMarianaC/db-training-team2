@@ -8,21 +8,12 @@
 // ============================================================================
 
 const API_BASE = "http://localhost:8080/api/v1";
-const AUTH_HEADER = "Basic " + btoa("trader:trader-pass");
+const AUTH_HEADER = "Basic " + btoa("trader:trader-pw");
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("trade-form").addEventListener("submit", onSubmit);
 });
 
-/**
- * TODO(TICKET-I095): client-side validation:
- *  - all fields required
- *  - quantity > 0, price > 0
- *  - tradeDate not in the future
- *  - show inline error spans, return false if invalid
- *
- * TODO(TICKET-I096): on valid, POST /api/v1/trades, show toast on success.
- */
 async function onSubmit(evt) {
     evt.preventDefault();
     const form = evt.target;
@@ -60,7 +51,6 @@ async function onSubmit(evt) {
 }
 
 function validate(data) {
-    // TODO(TICKET-I095): set/clear each .field-error[data-for=...] span.
     clearErrors();
     let ok = true;
 
