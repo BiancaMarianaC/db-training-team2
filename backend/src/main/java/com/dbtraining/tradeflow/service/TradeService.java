@@ -6,9 +6,13 @@ import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.Trade;
 import com.dbtraining.tradeflow.model.TradeStatus;
 import com.dbtraining.tradeflow.repository.TradeRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -52,9 +56,22 @@ public class TradeService {
     // type hierarchies, so migrating those would be a bigger change than
     // this ticket's TODO (createTrade only) asks for.
     private final TradeRepository tradeRepository;
+    private final Counter tradesCreatedCounter;
 
-    public TradeService(TradeRepository tradeRepository) {
+    public TradeService(TradeRepository tradeRepository, MeterRegistry meterRegistry) {
         this.tradeRepository = tradeRepository;
+        this.tradesCreatedCounter = Counter.builder("tradeflow_trades_created_total")
+                .description("Total trades successfully created via POST /api/v1/trades")
+                .register(meterRegistry);
+
+        for (TradeStatus status : TradeStatus.values()) {
+            Gauge.builder("tradeflow_trades_by_status",
+                            tradeRepository,
+                            r -> (double) r.countByStatus(status))
+                    .description("Live count of trades per status")
+                    .tag("status", status.name())
+                    .register(meterRegistry);
+        }
     }
 
     public Collection<BaseTrade> getAllTrades() {
@@ -94,6 +111,30 @@ public class TradeService {
     }
 
     /**
+     * TICKET-I068: list trades, optionally filtered by status and/or a
+     * trade-date range. If only one of from/to is given (not both), the date
+     * filter is skipped rather than guessing an open-ended range.
+     */
+    public List<TradeDto> getTrades(TradeStatus status, LocalDate from, LocalDate to) {
+        List<Trade> trades;
+        boolean hasDateRange = from != null && to != null;
+
+        if (status != null && hasDateRange) {
+            trades = tradeRepository.findByTradeDateBetween(from, to).stream()
+                    .filter(t -> t.getStatus() == status)
+                    .collect(Collectors.toList());
+        } else if (status != null) {
+            trades = tradeRepository.findByStatus(status);
+        } else if (hasDateRange) {
+            trades = tradeRepository.findByTradeDateBetween(from, to);
+        } else {
+            trades = tradeRepository.findAll();
+        }
+
+        return trades.stream().map(TradeService::toDto).collect(Collectors.toList());
+    }
+
+    /**
      * TICKET-I062: converts the inbound request into a Trade entity, saves it
      * via TradeRepository, and maps the persisted entity to a TradeDto.
      * TradeEvent publishing to Kafka is TICKET-I115 (Day 6) — not here yet.
@@ -109,6 +150,7 @@ public class TradeService {
                 .build();
 
         Trade saved = tradeRepository.save(trade);
+        tradesCreatedCounter.increment();
         return toDto(saved);
     }
 

@@ -8,21 +8,12 @@
 // ============================================================================
 
 const API_BASE = "http://localhost:8080/api/v1";
-const AUTH_HEADER = "Basic " + btoa("trader:trader-pass");
+const AUTH_HEADER = "Basic " + btoa("trader:trader-pw");
 
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("trade-form").addEventListener("submit", onSubmit);
 });
 
-/**
- * TODO(TICKET-I095): client-side validation:
- *  - all fields required
- *  - quantity > 0, price > 0
- *  - tradeDate not in the future
- *  - show inline error spans, return false if invalid
- *
- * TODO(TICKET-I096): on valid, POST /api/v1/trades, show toast on success.
- */
 async function onSubmit(evt) {
     evt.preventDefault();
     const form = evt.target;
@@ -60,12 +51,16 @@ async function onSubmit(evt) {
 }
 
 function validate(data) {
-    // TODO(TICKET-I095): set/clear each .field-error[data-for=...] span.
     clearErrors();
     let ok = true;
 
-    if (Number(data.quantity) <= 0) { setError("quantity", "must be > 0"); ok = false; }
-    if (Number(data.price)    <= 0) { setError("price",    "must be > 0"); ok = false; }
+    if (!data.tradeRef)              { setError("tradeRef", "required");   ok = false; }
+    if (!data.instrumentId)          { setError("instrumentId", "required"); ok = false; }
+    if (!data.counterpartyId)        { setError("counterpartyId", "required"); ok = false; }
+    if (!data.quantity)              { setError("quantity", "required");   ok = false; }
+    else if (Number(data.quantity) <= 0) { setError("quantity", "must be > 0"); ok = false; }
+    if (!data.price)                 { setError("price", "required");     ok = false; }
+    else if (Number(data.price) <= 0)    { setError("price",    "must be > 0"); ok = false; }
     if (!data.tradeDate)             { setError("tradeDate", "required");   ok = false; }
     if (data.tradeDate && new Date(data.tradeDate) > new Date()) {
         setError("tradeDate", "must not be in the future"); ok = false;

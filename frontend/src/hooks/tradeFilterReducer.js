@@ -7,7 +7,6 @@
  *          together (status + dateRange + sortField + ...).
  * ============================================================================
  *
- *  TODO(TICKET-I109): add cases for every action.
  *  Actions:
  *    SET_STATUS         { status }
  *    SET_DATE_RANGE     { from, to }
@@ -33,8 +32,8 @@ export function tradeFilterReducer(state, action) {
         case 'SET_SORT':         return { ...state, sortField: action.field, sortDir: action.dir };
         case 'RESET':            return initialFilters;
         default:
-            // TODO(TICKET-I109): keep a defensive throw — typos in action.type
-            // become loud errors instead of silent bugs.
+            // Defensive throw — typos in action.type become loud errors
+            // instead of silent bugs.
             throw new Error('Unknown filter action: ' + action.type);
     }
 }
