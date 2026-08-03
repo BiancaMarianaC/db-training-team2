@@ -8,14 +8,8 @@
  * OBSERVE: Clicking a sidebar link doesn't reload the page — that's React
  *          Router doing client-side navigation.
  * ============================================================================
- *
- *  TODO(TICKET-I110):
- *    - Routes: /dashboard, /trades, /trades/new, /recon
- *    - Default `/` -> redirect to /dashboard
- *    - 404 fallback page
- * ============================================================================
  */
-import { Navigate, Route, Routes, Link } from 'react-router-dom';
+import { Link, Navigate, NavLink, Route, Routes } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import Trades from './pages/Trades.jsx';
 import AddTradeForm from './components/AddTradeForm.jsx';
@@ -26,17 +20,16 @@ export default function App() {
         <div className="layout">
             <header className="topbar">
                 <span className="logo">DB · TradeFlow</span>
-                <span className="user">Logged in as <strong>viewer</strong></span>
+                <span className="user">Logged in as <strong>trader</strong></span>
             </header>
 
             <div className="main">
-                <nav className="sidebar">
-                    {/* TODO(TICKET-I110): use NavLink for active styling. */}
+                <nav className="sidebar" aria-label="Primary">
                     <ul>
-                        <li><Link to="/dashboard">Dashboard</Link></li>
-                        <li><Link to="/trades">Trades</Link></li>
-                        <li><Link to="/trades/new">+ New Trade</Link></li>
-                        <li><Link to="/recon">Recon Breaks</Link></li>
+                        <li><NavLink to="/dashboard" className={navClass}>Dashboard</NavLink></li>
+                        <li><NavLink to="/trades" end className={navClass}>Trades</NavLink></li>
+                        <li><NavLink to="/trades/new" className={navClass}>+ New Trade</NavLink></li>
+                        <li><NavLink to="/recon" className={navClass}>Recon Breaks</NavLink></li>
                     </ul>
                 </nav>
 
@@ -53,6 +46,10 @@ export default function App() {
             </div>
         </div>
     );
+}
+
+function navClass({ isActive }) {
+    return isActive ? 'active' : '';
 }
 
 function NotFound() {
