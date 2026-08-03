@@ -1,7 +1,9 @@
 package com.dbtraining.tradeflow.service;
 
 import com.dbtraining.tradeflow.dto.TradeDto;
+import com.dbtraining.tradeflow.dto.TradeEvent;
 import com.dbtraining.tradeflow.dto.TradeRequest;
+import com.dbtraining.tradeflow.kafka.TradeEventProducer;
 import com.dbtraining.tradeflow.model.BaseTrade;
 import com.dbtraining.tradeflow.model.Trade;
 import com.dbtraining.tradeflow.model.TradeStatus;
@@ -12,6 +14,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,10 +59,13 @@ public class TradeService {
     // type hierarchies, so migrating those would be a bigger change than
     // this ticket's TODO (createTrade only) asks for.
     private final TradeRepository tradeRepository;
+    private final TradeEventProducer eventProducer;
     private final Counter tradesCreatedCounter;
 
-    public TradeService(TradeRepository tradeRepository, MeterRegistry meterRegistry) {
+    public TradeService(TradeRepository tradeRepository, TradeEventProducer eventProducer,
+                         MeterRegistry meterRegistry) {
         this.tradeRepository = tradeRepository;
+        this.eventProducer = eventProducer;
         this.tradesCreatedCounter = Counter.builder("tradeflow_trades_created_total")
                 .description("Total trades successfully created via POST /api/v1/trades")
                 .register(meterRegistry);
@@ -137,7 +143,9 @@ public class TradeService {
     /**
      * TICKET-I062: converts the inbound request into a Trade entity, saves it
      * via TradeRepository, and maps the persisted entity to a TradeDto.
-     * TradeEvent publishing to Kafka is TICKET-I115 (Day 6) — not here yet.
+     * TICKET-I115: publishes a CREATED TradeEvent after the DB insert
+     * succeeds. A publish failure is logged by the producer, not thrown, so
+     * it never rolls back the trade insert.
      */
     public TradeDto createTrade(TradeRequest request) {
         Trade trade = Trade.builder()
@@ -151,7 +159,9 @@ public class TradeService {
 
         Trade saved = tradeRepository.save(trade);
         tradesCreatedCounter.increment();
-        return toDto(saved);
+        TradeDto dto = toDto(saved);
+        eventProducer.publish(new TradeEvent(dto.tradeRef(), TradeEvent.Action.CREATED, Instant.now(), dto));
+        return dto;
     }
 
     /**

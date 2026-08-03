@@ -1,6 +1,7 @@
 package com.dbtraining.tradeflow.service;
 
 import com.dbtraining.tradeflow.dto.TradeRequest;
+import com.dbtraining.tradeflow.kafka.TradeEventProducer;
 import com.dbtraining.tradeflow.repository.TradeRepository;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.when;
 class TradeServiceMetricsTest {
 
     @Mock private TradeRepository tradeRepository;
+    @Mock private TradeEventProducer eventProducer;
 
     private SimpleMeterRegistry meterRegistry;
     private TradeService tradeService;
@@ -28,7 +30,7 @@ class TradeServiceMetricsTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        tradeService = new TradeService(tradeRepository, meterRegistry);
+        tradeService = new TradeService(tradeRepository, eventProducer, meterRegistry);
     }
 
     @Test
