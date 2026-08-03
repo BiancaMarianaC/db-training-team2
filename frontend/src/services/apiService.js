@@ -27,20 +27,29 @@ const AUTH = 'Basic ' + btoa('trader:trader-pw');
 export class ApiError extends Error {
     constructor(status, body) {
         super(body?.message || `HTTP ${status}`);
+        this.name = 'ApiError';
         this.status = status;
         this.body = body;
     }
 }
 
 async function request(path, options = {}) {
-    const res = await fetch(BASE + path, {
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': AUTH,
-            ...(options.headers || {})
-        }
-    });
+    let res;
+    try {
+        res = await fetch(BASE + path, {
+            ...options,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': AUTH,
+                ...(options.headers || {})
+            }
+        });
+    } catch (cause) {
+        throw new ApiError(undefined, {
+            message: 'Network request failed',
+            cause: cause instanceof Error ? cause.message : String(cause)
+        });
+    }
 
     if (!res.ok) {
         const body = await res.json().catch(() => ({}));
