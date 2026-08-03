@@ -44,6 +44,7 @@ class ReconciliationServiceTest {
     @Mock private ReconResultRepository reconResultRepository;
     @Mock private AuditLogRepository auditLogRepository;
     private SimpleMeterRegistry meterRegistry;
+
     /** ReconResultDAO was removed as part of TICKET-I061
         as it was no longer used at that point */
     // @Mock private ReconResultDAO reconResultDAO;

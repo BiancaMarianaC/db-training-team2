@@ -62,9 +62,12 @@ public class ReconciliationService {
     private final AuditLogRepository auditLogRepository;
     private final Counter reconResolvedCounter;
 
-    public ReconciliationService(ReconResultRepository reconResultRepository,
-                                 AuditLogRepository auditLogRepository,
-                                 MeterRegistry meterRegistry) {
+    public ReconciliationService(
+        ReconResultRepository reconResultRepository,
+        AuditLogRepository auditLogRepository,
+        MeterRegistry meterRegistry
+    ) {
+
         this.reconResultRepository = reconResultRepository;
         this.auditLogRepository = auditLogRepository;
         this.reconRunTimer = Timer.builder("tradeflow_recon_run_seconds")
@@ -77,6 +80,21 @@ public class ReconciliationService {
                 .register(meterRegistry);
     }
 
+    /**
+     * TICKET-I079: not implemented yet. tradeDAO.findAll() returns
+     * List<Trade>, but matchTrades() (below) works on List<BaseTrade> —
+     * Trade and BaseTrade are separate type hierarchies (same issue as
+     * TICKET-I062), so this can't just forward to matchTrades() as-is.
+     * There's also no real "external feed" source wired up yet, so it's
+     * not clear what runForAll() should compare the internal trades
+     * against. Left as an explicit failure instead of guessing, so it
+     * doesn't silently do the wrong thing (e.g. flagging every trade as
+     * a discrepancy).
+     * 
+     * UPDATE (TICKET-I078):
+     * TradeDAO dependency removed because it was unused.
+     * Persistence is now handled through JPA repositories.
+     */
     @Transactional(readOnly = true)
     public ReconSummary runForAll() {
         return reconRunTimer.record(() -> {
