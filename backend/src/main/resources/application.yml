@@ -39,19 +39,27 @@ spring:
         format_sql: true
 
   # ----------------------------------------------------------------------
-  # Kafka — TICKET-I113 (uncomment after adding the spring-kafka dep)
+  # Kafka — TICKET-I113
   # ----------------------------------------------------------------------
-  # kafka:
-  #   bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-  #   consumer:
-  #     group-id: ${KAFKA_CONSUMER_GROUP:recon-group}
-  #     key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-  #     value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-  #     properties:
-  #       spring.json.trusted.packages: "com.dbtraining.tradeflow.*"
-  #   producer:
-  #     key-serializer: org.apache.kafka.common.serialization.StringSerializer
-  #     value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:recon-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.dbtraining.tradeflow.*"
+        spring.json.value.default.type: "com.dbtraining.tradeflow.dto.TradeEvent"
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    listener:
+      ack-mode: record            # at-least-once
+      observation-enabled: true   # Micrometer metrics for I120
 
 # ============================================================================
 # Actuator — TICKET-I078
