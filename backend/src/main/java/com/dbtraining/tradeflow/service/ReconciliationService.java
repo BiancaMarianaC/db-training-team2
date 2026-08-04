@@ -14,6 +14,8 @@ import com.dbtraining.tradeflow.exception.TradeNotFoundException;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -56,6 +58,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class ReconciliationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ReconciliationService.class);
 
     private final ReconResultRepository reconResultRepository;
     private final Timer reconRunTimer;
@@ -116,6 +120,19 @@ public class ReconciliationService {
             return new ReconSummary(total, total, matched, unmatched,
                     Collections.unmodifiableMap(breakdown));
         });
+    }
+
+    /**
+     * TICKET-I117: triggered by ReconEventConsumer on every CREATED
+     * TradeEvent. Real per-trade reconciliation needs an external feed to
+     * compare against, which doesn't exist yet (same gap as runForAll,
+     * see TICKET-I079 above) — so this only logs that recon fired for the
+     * trade for now. Wire up a real comparison once an external source is
+     * available; don't fabricate one here just to produce a ReconResult.
+     */
+    public void runForTrade(String tradeRef) {
+        log.info("Recon triggered for tradeRef={} (no external feed wired yet — no-op)",
+                tradeRef);
     }
 
     @Transactional(readOnly = true)
