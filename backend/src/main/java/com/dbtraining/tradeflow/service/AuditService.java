@@ -36,6 +36,11 @@ public class AuditService {
 
     @Transactional
     public void record(TradeEvent event) {
+        if (event.action() == null || event.payload() == null) {
+            log.warn("Skipping audit record for malformed TradeEvent (tradeRef={}, action={}, payload={})",
+                    event.tradeRef(), event.action(), event.payload());
+            return;
+        }
         auditLogRepository.save(AuditLog.builder()
                 .tableName("trades")
                 .operation(toOperation(event.action()))
