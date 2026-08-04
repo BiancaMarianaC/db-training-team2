@@ -8,6 +8,7 @@
  */
 import { useState } from 'react';
 import StatusBadge from '../components/StatusBadge.jsx';
+import ResolveBreakModal from '../components/ResolveBreakModal.jsx';
 import { useReconResults } from '../hooks/useReconResults.js';
 import { resolveBreak } from '../services/apiService.js';
 import { useBreaks } from '../context/BreakContext.jsx';
@@ -18,6 +19,7 @@ export default function Recon() {
     const { dispatch } = useBreaks();
 
     const [optimistic, setOptimistic] = useState({});
+    const [modalBreakId, setModalBreakId] = useState(null);
 
     const onResolve = async (id) => {
         setOptimistic(prev => ({ ...prev, [id]: 'RESOLVED' }));
@@ -33,7 +35,7 @@ export default function Recon() {
                 return next;
             });
             dispatch({ type: 'REOPEN' });
-            alert('Resolve failed: ' + e.message);
+            throw e;
         }
     };
 
@@ -73,7 +75,7 @@ export default function Recon() {
                                 <td><StatusBadge status={status} /></td>
                                 <td>
                                     {status === 'OPEN' && (
-                                        <button onClick={() => onResolve(r.id)}>Resolve</button>
+                                        <button onClick={() => setModalBreakId(r.id)}>Resolve</button>
                                     )}
                                 </td>
                             </tr>
@@ -81,6 +83,13 @@ export default function Recon() {
                     })}
                 </tbody>
             </table>
+
+            <ResolveBreakModal
+                open={modalBreakId !== null}
+                breakId={modalBreakId}
+                onClose={() => setModalBreakId(null)}
+                onConfirm={() => onResolve(modalBreakId)}
+            />
         </>
     );
 }
