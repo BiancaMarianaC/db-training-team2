@@ -37,3 +37,11 @@ VALUES
   ('TR-008', 3, 2,  500000.0000,    1.0855, CURRENT_DATE,     'PENDING',   CURRENT_TIMESTAMP),
   ('TR-009', 4, 1,      10.0000,   99.5500, CURRENT_DATE,     'MATCHED',   CURRENT_TIMESTAMP),
   ('TR-010', 5, 3,      50.0000, 2148.7500, CURRENT_DATE,     'UNMATCHED', CURRENT_TIMESTAMP);
+
+-- NOTE: recon_breaks demo seed lives only in
+-- db/changelog/changes/014-seed-recon-breaks.xml (Liquibase, context="demo",
+-- active for the docker profile). It's deliberately NOT duplicated here:
+-- this script runs unconditionally under the shared "dev" profile — which
+-- @SpringBootTest classes also inherit by default — so any recon_breaks
+-- rows added here would contaminate integration tests that assert exact
+-- counts (see ReconResultsIntegrationTest / ReconRunIntegrationTest).

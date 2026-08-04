@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+  <!--
+    Demo/smoke-test seed data: 10 recon_breaks rows, one per trade seeded in
+    010-seed-trades.xml (trade_id 1-10). No live code path currently creates
+    ReconResult rows automatically — ReconEventConsumer.runForTrade() is a
+    logging placeholder until an external counterparty feed exists to
+    compare against (same gap as ReconciliationService.runForAll(), see
+    TICKET-I079/I117). Without this seed, the Recon Breaks page is always
+    empty on a fresh database, which makes I132's smoke test and the demo
+    recording pointless to run. 7 OPEN (something to resolve live) + 3
+    RESOLVED (something already closed, for the "Resolved" filter pill),
+    covering every DiscrepancyType at least twice.
+
+    context="demo" — only applied when spring.liquibase.contexts includes
+    "demo" (wired in application-dev.yml + application-docker.yml). Without
+    this, the seed also ran against the bare auto-configured H2 that
+    @SpringBootTest integration tests use, inflating counts they assert on
+    (e.g. ReconResultsIntegrationTest expected totalElements=1 for an
+    OPEN+counterparty=1 filter, got 3, because trade 1's seeded break
+    matched that exact filter).
+  -->
+  <changeSet id="014-seed-recon-breaks" author="bianca.carapcea@db.com" context="demo">
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="1"/><column name="status" value="OPEN"/><column name="discrepancy_type" value="PRICE_MISMATCH"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="2"/><column name="status" value="OPEN"/><column name="discrepancy_type" value="QUANTITY_MISMATCH"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="3"/><column name="status" value="OPEN"/><column name="discrepancy_type" value="DATE_MISMATCH"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="4"/><column name="status" value="OPEN"/><column name="discrepancy_type" value="MISSING_TRADE"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="5"/><column name="status" value="OPEN"/><column name="discrepancy_type" value="PRICE_MISMATCH"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="6"/><column name="status" value="RESOLVED"/><column name="discrepancy_type" value="QUANTITY_MISMATCH"/><column name="resolved_at" valueComputed="CURRENT_TIMESTAMP"/><column name="resolved_by" value="admin"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="7"/><column name="status" value="RESOLVED"/><column name="discrepancy_type" value="PRICE_MISMATCH"/><column name="resolved_at" valueComputed="CURRENT_TIMESTAMP"/><column name="resolved_by" value="trader"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="8"/><column name="status" value="OPEN"/><column name="discrepancy_type" value="DATE_MISMATCH"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="9"/><column name="status" value="RESOLVED"/><column name="discrepancy_type" value="MISSING_TRADE"/><column name="resolved_at" valueComputed="CURRENT_TIMESTAMP"/><column name="resolved_by" value="admin"/></insert>
+    <insert tableName="recon_breaks"><column name="trade_id" valueNumeric="10"/><column name="status" value="OPEN"/><column name="discrepancy_type" value="QUANTITY_MISMATCH"/></insert>
+
+    <rollback>
+      <delete tableName="recon_breaks"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

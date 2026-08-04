@@ -13,6 +13,10 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password: ""
+  liquibase:
+    # "demo" context (014-seed-recon-breaks.xml) is scoped to dev/docker
+    # only — must NOT run against @SpringBootTest's bare auto-configured H2.
+    contexts: demo
   h2:
     console:
       enabled: true
