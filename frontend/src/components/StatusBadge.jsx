@@ -22,7 +22,7 @@ const COLOURS = {
     CANCELLED: styles.cancelled,
     OPEN:      styles.unmatched,
     RESOLVED:  styles.matched,
-    IGNORED:   styles.pending
+    SUPPRESSED: styles.pending
 };
 
 export default function StatusBadge({ status }) {
