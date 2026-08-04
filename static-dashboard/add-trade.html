@@ -21,7 +21,7 @@
 
 <div class="layout">
 
-    <nav class="sidebar">
+    <nav class="sidebar" aria-label="Primary">
         <ul>
             <li><a href="dashboard.html">Dashboard</a></li>
             <li><a href="trades.html">Trades</a></li>
@@ -45,7 +45,7 @@
             - on submit: POST /api/v1/trades, show toast, redirect to trades.html
         =============================================================
         -->
-        <form id="trade-form" novalidate>
+        <form id="trade-form" novalidate autocomplete="off">
 
             <label>Trade Ref
                 <input type="text" name="tradeRef" required pattern="TRD-\d{4}-\d{4}"
