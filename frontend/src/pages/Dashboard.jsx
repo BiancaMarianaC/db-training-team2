@@ -16,22 +16,22 @@ import { useEffect, useMemo } from 'react';
 import StatCard from '../components/StatCard.jsx';
 import { useTradeData } from '../hooks/useTradeData.js';
 import { useReconResults } from '../hooks/useReconResults.js';
+import { useBreaks } from '../context/BreakContext.jsx';
 
 const REFRESH_MS = 30_000;
 
 export default function Dashboard() {
     const filters = useMemo(() => ({ size: 500 }), []);
     const { trades, loading, refetch: refetchTrades } = useTradeData(filters);
-    const { results: openBreaks, refetch: refetchBreaks } = useReconResults('OPEN');
     const { results: resolvedBreaks } = useReconResults('RESOLVED');
+    const { state: breaks } = useBreaks();
 
     useEffect(() => {
         const id = setInterval(() => {
             refetchTrades();
-            refetchBreaks();
         }, REFRESH_MS);
         return () => clearInterval(id);
-    }, [refetchTrades, refetchBreaks]);
+    }, [refetchTrades]);
 
     const total = trades.length;
     const matched = trades.filter(t => t.status === 'MATCHED').length;
@@ -44,7 +44,7 @@ export default function Dashboard() {
             <section className="cards">
                 <StatCard caption="Total Trades"       value={loading ? '…' : total} />
                 <StatCard caption="Matched %"          value={loading ? '…' : matchedPct} />
-                <StatCard caption="Unmatched Count"    value={openBreaks.length} />
+                <StatCard caption="Unmatched Count"    value={breaks.openCount} />
                 <StatCard caption="Avg Resolution Hrs" value={avgHours} />
             </section>
             <p className="footnote">Auto-refresh every 30s.</p>
