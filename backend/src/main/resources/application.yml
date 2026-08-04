@@ -57,6 +57,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.add.type.headers: false
+        enable.idempotence: true   # TICKET-I124 — dedupe retried sends per partition
     listener:
       ack-mode: record            # at-least-once
       observation-enabled: true   # Micrometer metrics for I120
