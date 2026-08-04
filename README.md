@@ -1,231 +1,160 @@
-# TradeFlow — Trade Reconciliation Dashboard (Student Starter)
+# TradeFlow — Trade Reconciliation Dashboard
 
-> Deutsche Bank — TDI 2026 Graduate Technical Training Programme
-> **Intermediate Track** | 10-Day Case Study | Version 2.0
+> A full-stack trade-reconciliation platform built during Deutsche Bank's TDI
+> 2026 Graduate Technical Training Programme. TradeFlow manages trades,
+> publishes lifecycle events through Kafka, records audit activity, and exposes
+> operational metrics through Prometheus and Grafana.
 
-This repository is the **starter scaffold** for the TradeFlow case study. Each
-day of the programme adds another layer to the system. By Day 10 you and your
-team will have built, dockerised, tested, and monitored a full-stack trade
-reconciliation platform with Kafka event streaming and a CI/CD pipeline.
+## Quick start
 
----
+### Prerequisites
 
-## What you will build
+- Docker Desktop running, with Docker Compose v2 available
+- Git
+- A GitHub personal access token with `read:packages` if the TradeFlow GHCR
+  images are private
 
-A mid-complexity trade reconciliation system used (in concept) by an Operations
-team to detect and resolve mismatches between internal trade records and
-external counterparty/custodian feeds.
+From the repository root:
 
-```
-   ┌──────────┐        ┌────────────────────┐        ┌────────────┐
-   │  React   │  HTTP  │  Spring Boot REST  │  JDBC  │ PostgreSQL │
-   │ Frontend │ ─────▶ │   recon-service    │ ─────▶ │            │
-   └──────────┘        │   + Spring Security│        └────────────┘
-                       └──────────┬─────────┘
-                                  │  KafkaTemplate / @KafkaListener
-                                  ▼
-                          ┌───────────────┐
-                          │  Apache Kafka │
-                          │ trade-events  │
-                          └───────┬───────┘
-                                  │
-                                  ▼
-                       ┌────────────────────┐
-                       │   Recon Consumer   │ ─▶ writes recon_results
-                       │  Audit Consumer    │ ─▶ writes audit_log
-                       └────────────────────┘
+```bash
+cp .env.example .env
 
-           /actuator/prometheus  ─▶  Prometheus  ─▶  Grafana dashboards
+# Required only when GHCR asks for authentication.
+echo "<github-token>" | docker login ghcr.io -u <github-username> --password-stdin
+
+docker compose pull
+docker compose up -d
+docker compose ps
 ```
 
----
+Wait until the backend and frontend show `healthy`. A cold start can take a
+minute while PostgreSQL, Kafka, Liquibase, and the backend initialise.
+
+Useful diagnostics:
+
+```bash
+docker compose logs -f backend
+docker compose logs -f kafka
+docker compose down                 # stop containers; keep database volumes
+docker compose down -v              # stop containers and remove local data
+```
+
+`docker compose down -v` removes the local PostgreSQL and Grafana volumes, so
+use it only when resetting the demo environment is intended.
+
+## Open the platform
+
+| URL | Purpose | Credentials |
+| --- | --- | --- |
+| <http://localhost:5173> | React operations dashboard | The demo UI uses the trader account automatically. |
+| <http://localhost:8080/swagger-ui.html> | Swagger / OpenAPI API explorer | `trader` / `trader-pw` for write endpoints. |
+| <http://localhost:8080/actuator/health> | Backend health check | None. |
+| <http://localhost:9000> | Kafdrop — inspect Kafka topics and consumer groups | None. |
+| <http://localhost:9090> | Prometheus | None. |
+| <http://localhost:3000> | Grafana dashboards | `admin` / `admin` by default; configurable in `.env`. |
+
+The API uses HTTP Basic authentication. The built-in demo accounts are:
+
+| User | Password | Roles |
+| --- | --- | --- |
+| `viewer` | `viewer-pw` | Read-only API access |
+| `trader` | `trader-pw` | Read and write API access |
+| `admin` | `admin-pw` | Read, write, and protected actuator access |
+
+These are development/demo credentials only; they are not suitable for a
+production deployment.
+
+## Deploy a verified image
+
+CI publishes backend and frontend images to GitHub Container Registry (GHCR)
+after a successful push to `develop` or `main`. The normal demo-laptop flow
+is exactly the quick start above: log in if necessary, pull, then start the
+Compose stack.
+
+To pin a known-good build, replace both `:latest` tags in `.env` with the
+same full commit SHA reported by the successful GitHub Actions run, then pull
+and start again:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Pinning both images prevents a later CI build from changing the application
+halfway through a demo.
 
 ## Architecture
 
-See [`docs/architecture.md`](./docs/architecture.md) for the full component
-diagram (React → Spring Boot → Postgres + Kafka → consumers → Prometheus →
-Grafana) and the CI/CD + deploy flow (push → GitHub Actions → GHCR → demo
-laptop).
+See [the architecture document](./docs/architecture.md) for the runtime
+component diagram and the GitHub Actions → GHCR → demo-laptop delivery flow.
 
----
+At runtime, the React UI calls the Spring Boot API. The API persists trades in
+PostgreSQL and publishes trade events to Kafka. Independent consumer groups
+handle logging, reconciliation triggering, and audit persistence. Prometheus
+scrapes backend metrics and Grafana visualises the provisioned dashboards.
+
+## API contract
+
+All API endpoints are rooted at `/api/v1`. The Swagger UI is the interactive
+source of truth, including request schemas and response examples.
+
+| Method | Path | Required role | Description |
+| --- | --- | --- | --- |
+| `GET` | `/trades` | `VIEWER` | List trades; optional `status`, `from`, and `to` filters. |
+| `POST` | `/trades` | `TRADER` | Create a trade and publish a `CREATED` event. |
+| `PUT` | `/trades/{id}/status` | `TRADER` | Update a trade's status. |
+| `DELETE` | `/trades/{id}` | `TRADER` | Soft-delete a trade by setting its status to `CANCELLED`. |
+| `POST` | `/recon/run` | `TRADER` | Trigger the available reconciliation summary run. |
+| `GET` | `/recon/results` | `VIEWER` | List recon breaks; supports `status`, `counterpartyId`, and pagination. |
+| `PUT` | `/recon/{id}/resolve` | `TRADER` | Mark a recon break as resolved. |
+
+The public operational endpoints are `/actuator/health`, `/actuator/info`,
+`/actuator/prometheus`, and the Swagger/OpenAPI paths. Other actuator
+endpoints require the `ADMIN` role.
 
 ## Repository layout
 
-```
-tradeflow-studentscopy/
-├── db/                       ← Day 1: SQL assets (seed + analytical queries)
-│   ├── seed_data.sql         ← Counterparties, instruments, sample trades
-│   ├── queries.sql           ← Analytical queries (Window fns, CTEs)
-│   └── erd.md                ← ER diagram
-│
-│   NOTE: Liquibase changelogs live on the JVM classpath at
-│         backend/src/main/resources/db/changelog/ — not here.
-│
-├── backend/                  ← Days 2-6, 9: Java + Spring Boot + Kafka
-│   ├── pom.xml
-│   ├── Dockerfile
-│   └── src/main/java/com/dbtraining/tradeflow/
-│       ├── TradeflowApplication.java
-│       ├── model/            ← Day 2-3: domain POJOs + JPA entities
-│       ├── repository/       ← Day 4-5: JDBC DAOs and Spring Data repos
-│       ├── service/          ← Day 3-4: business logic + reconciliation
-│       ├── controller/       ← Day 6: REST API endpoints
-│       ├── dto/              ← request/response objects, TradeEvent
-│       ├── exception/        ← Day 3-6: custom exceptions, @RestControllerAdvice
-│       ├── config/           ← Day 5-6: Swagger, Security, Kafka config
-│       └── kafka/            ← Day 9: producers and consumers
-│
-├── static-dashboard/         ← Day 7: HTML + CSS markup & styling
-│   ├── dashboard.html        ←   Day 8 AM wires these pages with vanilla JS
-│   ├── trades.html
-│   ├── recon.html
-│   ├── add-trade.html
-│   ├── css/style.css
-│   └── js/*.js               ←   created on Day 8 AM (I093–I098)
-│
-├── frontend/                 ← Day 8 PM + Day 9: React + Vite recon-ui
-│   ├── package.json
-│   ├── vite.config.js
-│   ├── Dockerfile
-│   └── src/
-│       ├── App.jsx
-│       ├── components/       ← TradeTable, BreakBadge, StatCard, ...
-│       ├── hooks/            ← useTradeData, useReconResults
-│       ├── services/         ← apiService.js
-│       ├── pages/            ← Dashboard, Trades, Recon, AddTrade
-│       └── styles/
-│
-├── monitoring/               ← Day 6 + 10: Prometheus / Grafana
-│   ├── prometheus/prometheus.yml
-│   └── grafana/provisioning/
-│
-├── .github/workflows/ci.yml  ← Day 10: GitHub Actions pipeline
-├── docker-compose.yml        ← Day 10: full stack: postgres + kafka + app + observability
-├── .env.example              ← Sample environment variables
-└── .gitignore
-```
+| Path | Contents |
+| --- | --- |
+| [`backend/`](./backend) | Spring Boot API, Liquibase migrations, Kafka producers/consumers, and tests. |
+| [`frontend/`](./frontend) | React/Vite dashboard served by nginx in the Docker image. |
+| [`monitoring/`](./monitoring) | Prometheus configuration and provisioned Grafana dashboards. |
+| [`docs/`](./docs) | Architecture and AI-review documentation. |
+| [`docker-compose.yml`](./docker-compose.yml) | The eight-service local/demo stack. |
+| [`student-guides/`](./student-guides) | Day-by-day ticket requirements and reference hints. |
 
-The full per-day walkthrough lives in [`./student-guides/`](./student-guides/README.md).
-**Read [`student-guides/day0/README.md`](./student-guides/day0/README.md) before you start.**
+## Local development and verification
 
----
-
-## Prerequisites
-
-- Java 17 (Temurin recommended)
-- Maven 3.9+
-- Node.js 20+ and npm
-- Docker Desktop (with at least 4 GB RAM allocated)
-- PostgreSQL 15 (or use the bundled Docker container)
-- Git
-- IDE: IntelliJ IDEA (backend) + VS Code (frontend) recommended
-
-## Quick start (after Day 4)
+For backend development, Java 17 and a Kafka broker on port 9092 are required
+for the full test suite. Start the Compose Kafka dependency first. The Maven
+wrapper is invoked through `sh` because its executable file mode is not
+tracked in this repository:
 
 ```bash
-# 1. Bring up infrastructure (Postgres + Kafka + Prometheus + Grafana)
-docker compose up -d postgres kafka prometheus grafana
-
-# 2. Run the backend (Liquibase runs migrations automatically on startup)
+docker compose up -d zookeeper kafka
 cd backend
-./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
-
-# 3. Run the frontend
-cd ../frontend
-npm install
-npm run dev
-
-# 4. Open
-# - Swagger UI:     http://localhost:8080/swagger-ui.html
-# - Frontend:       http://localhost:5173
-# - Prometheus:     http://localhost:9090
-# - Grafana:        http://localhost:3000  (admin/admin)
-# - Kafdrop (Kafka): http://localhost:9000
+sh ./mvnw clean verify
 ```
 
----
-
-## Deploy to the demo laptop (Day 10)
-
-The deploy story is **GitHub Actions builds + pushes Docker images to GHCR; the
-demo laptop pulls them and runs the full stack via `docker compose up`.** No
-cloud hosting, no PaaS — the demo laptop *is* the deploy target.
+For frontend development, Node.js 20+ is required:
 
 ```bash
-# One-time on the demo laptop (uses a GitHub PAT with read:packages scope):
-echo "<your-PAT>" | docker login ghcr.io -u <gh-username> --password-stdin
-
-# Each deploy:
-docker compose pull        # fetches the latest CI-tested images from GHCR
-docker compose up -d       # brings up all 7 services
+cd frontend
+npm ci
+npm run dev
 ```
 
-Full walkthrough: [`student-guides/day10/day10-local-cicd.md`](./student-guides/day10/day10-local-cicd.md).
+The Vite development server runs on <http://localhost:5173> and proxies
+`/api` and `/actuator` requests to a backend running on port 8080. To run the
+frontend checks:
 
----
-
-## How to read the TODOs in this codebase
-
-Every place you must write code has a comment block that looks like this:
-
-```java
-// ============================================================================
-// TODO(TICKET-IXXX): <short ticket title>
-// WHAT:    <what you must build>
-// HOW:     <hint on how to build it>
-// WHY:     <why this matters in the bigger system>
-// OBSERVE: <what to look for or verify when you're done>
-// HINT:    <optional extra hint or link to a related ticket>
-// ============================================================================
+```bash
+cd frontend
+npm run build
+npm test -- --run
 ```
 
-The full ticket text, acceptance criteria, and detailed hints live in the
-matching day's README under [`student-guides/`](./student-guides/README.md).
+For a full local environment, prefer the Docker Compose quick start above;
+it supplies PostgreSQL, Kafka, Kafdrop, Prometheus, Grafana, the backend, and
+the frontend together.
 
----
-
-## Daily flow
-
-| Day | Theme | New Tickets |
-|----:|-------|-------------|
-| 0   | Introduction & onboarding | — |
-| 1   | PostgreSQL + Liquibase    | I001–I015 |
-| 2   | Java OOP fundamentals     | I016–I027 |
-| 3   | OOP patterns + SOLID      | I028–I040 |
-| 4   | Collections, JDBC, JUnit  | I041–I053 |
-| 5   | Spring Boot foundations   | I054–I067 |
-| 6   | REST + Security + Monitoring | I068–I085 |
-| 7   | HTML + CSS dashboard      | I086–I092 |
-| 8   | Vanilla JS (AM) + React (PM) | I093–I111 |
-| 9   | React advanced + Kafka    | I112–I124 |
-| 10  | Docker + CI/CD + Demo     | I125–I140 |
-
----
-
-## Branching
-
-Use **GitFlow**:
-
-```
-main      ← only release tags (v1.0.0 at end of Day 10)
-develop   ← integration branch — your team merges here
-feature/* ← one branch per ticket (e.g. feature/I017-trade-class)
-```
-
-Open a Pull Request from each `feature/*` branch into `develop`. Get one
-team-mate review before merge.
-
----
-
-## Final demo (Day 10)
-
-A 15-minute end-to-end walkthrough:
-
-| Minutes | Content |
-|--------:|---------|
-| 3       | Problem statement + architecture diagram |
-| 5       | Live demo: post a trade → Kafka event → recon → resolve → Grafana metric |
-| 4       | Code walkthrough (one feature you're proud of) |
-| 3       | Q&A |
-
-Good luck — and ask your instructors anything! 🏦
