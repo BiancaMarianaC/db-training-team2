@@ -144,6 +144,27 @@ button.active { background: var(--db-gold); color: var(--db-navy); }
 .error { padding: 1rem; color: #c62828; }
 .empty { padding: 1rem; color: var(--db-text-light); }
 
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.modal {
+    background: var(--db-card);
+    border-radius: 6px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 28rem;
+}
+.modal label { display: block; margin: 1rem 0; }
+.modal textarea { width: 100%; margin-top: 0.35rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.modal-error { color: #c62828; }
+
 @media (max-width: 600px) {
     .main { grid-template-columns: 1fr; }
     .sidebar { display: none; }
