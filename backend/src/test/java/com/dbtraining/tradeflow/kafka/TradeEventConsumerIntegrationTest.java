@@ -37,7 +37,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * ============================================================================
- * TradeEventConsumerIT — TICKET-I122 (Day 9)
+ * TradeEventConsumerIntegrationTest — TICKET-I122 (Day 9)
  * ============================================================================
  * WHAT:    Round-trip check with an embedded Kafka broker: publish a
  *          TradeEvent, confirm the recon + audit consumer groups both
@@ -52,7 +52,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
         AuditEventConsumer.class
 })
 @EmbeddedKafka(partitions = 1, topics = { "trade-events", "trade-events.DLT" })
-@Import(TradeEventConsumerIT.TestKafkaConfig.class)
+@Import(TradeEventConsumerIntegrationTest.TestKafkaConfig.class)
 @TestPropertySource(properties = {
         "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
         "tradeflow.kafka.topics.trades=trade-events",
@@ -60,7 +60,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
         "spring.kafka.consumer.auto-offset-reset=earliest"
 })
 @DirtiesContext
-class TradeEventConsumerIT {
+class TradeEventConsumerIntegrationTest {
 
     @Autowired
     private TradeEventProducer producer;
