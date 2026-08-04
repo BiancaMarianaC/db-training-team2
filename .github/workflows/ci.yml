@@ -122,20 +122,58 @@ jobs:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
 
+    # GHCR push needs packages:write. The default workflow token (GITHUB_TOKEN)
+    # is read-only without this opt-in.
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # TODO(TICKET-I133): if you have credentials, log in + push to GHCR.
-      # docker/login-action@v3 + docker/build-push-action@v5.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          # Auto-injected workflow token — no PAT needed in CI.
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build backend image
-        run: docker build -t tradeflow/backend:${{ github.sha }} backend
+      - name: Build + push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          provenance: false
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/tradeflow-backend:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/tradeflow-backend:latest
+          # Free Docker layer cache between CI runs.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build frontend image
-        run: docker build -t tradeflow/frontend:${{ github.sha }} frontend
+      - name: Build + push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          provenance: false
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/tradeflow-frontend:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/tradeflow-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # TODO(TICKET-I133): verify monitoring health after compose up
-      # (would need docker-compose action + a curl loop).
+      - name: Summary — pushed image refs
+        run: |
+          {
+            echo "### Pushed images"
+            echo ""
+            echo "- \`ghcr.io/${{ github.repository_owner }}/tradeflow-backend:${{ github.sha }}\`"
+            echo "- \`ghcr.io/${{ github.repository_owner }}/tradeflow-backend:latest\`"
+            echo "- \`ghcr.io/${{ github.repository_owner }}/tradeflow-frontend:${{ github.sha }}\`"
+            echo "- \`ghcr.io/${{ github.repository_owner }}/tradeflow-frontend:latest\`"
+          } >> "$GITHUB_STEP_SUMMARY"
