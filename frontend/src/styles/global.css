@@ -56,7 +56,8 @@ a:hover { text-decoration: underline; }
     padding: 0.75rem 1.25rem;
     border-left: 3px solid transparent;
 }
-.sidebar li a:hover {
+.sidebar li a:hover,
+.sidebar li a.active {
     background: rgba(255, 199, 44, 0.06);
     border-left-color: var(--db-gold);
     color: white;
