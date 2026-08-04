@@ -40,6 +40,15 @@ external counterparty/custodian feeds.
 
 ---
 
+## Architecture
+
+See [`docs/architecture.md`](./docs/architecture.md) for the full component
+diagram (React → Spring Boot → Postgres + Kafka → consumers → Prometheus →
+Grafana) and the CI/CD + deploy flow (push → GitHub Actions → GHCR → demo
+laptop).
+
+---
+
 ## Repository layout
 
 ```
