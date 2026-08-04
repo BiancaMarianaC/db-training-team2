@@ -6,6 +6,8 @@ import com.dbtraining.tradeflow.dto.TradeEvent;
 import com.dbtraining.tradeflow.model.TradeStatus;
 import com.dbtraining.tradeflow.service.AuditService;
 import com.dbtraining.tradeflow.service.ReconciliationService;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -128,6 +130,14 @@ class TradeEventConsumerIntegrationTest {
     @TestConfiguration
     @EnableConfigurationProperties(KafkaProperties.class)
     static class TestKafkaConfig {
+        // KafkaConfig.consumerFactory() needs a MeterRegistry (for the
+        // consumer-side Micrometer listener) — the slimmed @SpringBootTest
+        // context here doesn't auto-configure one like the full app does.
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
+
         @Bean
         KafkaTemplate<String, TradeEvent> kafkaTemplate(ProducerFactory<String, TradeEvent> pf) {
             return new KafkaTemplate<>(pf);

@@ -23,6 +23,10 @@ spring:
     hikari:
       maximum-pool-size: 10
       connection-timeout: 5000
+  liquibase:
+    # "demo" context (014-seed-recon-breaks.xml) — safe here since the
+    # compose Postgres is only ever used for local demo/smoke-testing.
+    contexts: demo
 
 logging:
   level:

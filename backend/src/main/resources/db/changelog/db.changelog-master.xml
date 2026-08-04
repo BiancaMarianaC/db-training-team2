@@ -36,6 +36,7 @@
     <include file="db/changelog/changes/011-create-views.xml"/>
     <include file="db/changelog/changes/012-create-audit-log.xml"/>
     <include file="db/changelog/changes/013-add-instrument-isin.xml"/>
+    <include file="db/changelog/changes/014-seed-recon-breaks.xml"/>
 
     <!--
         TICKET-I010 verified: `./mvnw spring-boot:run` boots clean against

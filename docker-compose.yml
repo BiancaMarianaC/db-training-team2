@@ -25,7 +25,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-tradeflow_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     ports:
-      - "5432:5432"
+      # Host-side port only — override via POSTGRES_HOST_PORT in .env if
+      # 5432 is already taken by a native Postgres install (common on
+      # Windows/Mac dev machines). Container-to-container traffic always
+      # uses "postgres:5432" via Docker's DNS, unaffected by this.
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
