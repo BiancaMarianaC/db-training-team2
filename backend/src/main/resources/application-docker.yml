@@ -1,0 +1,30 @@
+# ============================================================================
+# application-docker.yml — Compose runtime profile (TICKET-I127 + I131)
+# ============================================================================
+# WHAT:    Real PostgreSQL + Kafka reached by their compose service names.
+# HOW:     Same POSTGRES_* / KAFKA_BOOTSTRAP_SERVERS contract as the other
+#          profiles — docker-compose.yml sets these env vars per-service so
+#          "postgres"/"kafka" resolve via Docker's embedded DNS instead of
+#          localhost.
+# WHY:     Liquibase (Day 2) and the Kafka listeners (Day 9) already work
+#          against any reachable Postgres/Kafka — nothing new to wire here,
+#          just point at the compose network instead of a laptop.
+# OBSERVE: Backend boot log shows Liquibase changesets running against the
+#          compose "postgres" container, then the three Kafka consumer
+#          groups joining against the compose "kafka" container.
+# ============================================================================
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:tradeflow}
+    driver-class-name: org.postgresql.Driver
+    username: ${POSTGRES_USER:tradeflow_user}
+    password: ${POSTGRES_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+
+logging:
+  level:
+    com.dbtraining.tradeflow: INFO
+    org.hibernate.SQL: WARN
